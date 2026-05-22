@@ -1,0 +1,37 @@
+[package]
+name = "r2ps-client"
+version = "0.1.0"
+edition = "2021"
+description = "R2PS protocol client library — remote PAKE-protected signing for mobile deployments"
+license = "BSD-2-Clause"
+
+[lib]
+name = "r2ps_client"
+path = "src/lib.rs"
+
+[[bin]]
+name = "r2ps-cli"
+path = "src/bin/r2ps_cli.rs"
+required-features = ["cli"]
+
+[features]
+default = []
+cli = ["dep:clap", "dep:ureq", "dep:rpassword", "dep:hex"]
+
+[dependencies]
+p256 = { version = "0.13", features = ["ecdsa", "ecdh", "pkcs8", "pem"] }
+josekit = "0.10"
+rand = "0.8"
+base64ct = { version = "1", features = ["alloc"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+zeroize = { version = "1", features = ["derive"] }
+
+# CLI-only dependencies
+clap = { version = "4", features = ["derive", "env"], optional = true }
+ureq = { version = "2", optional = true }
+rpassword = { version = "7", optional = true }
+hex = { version = "0.4", optional = true }
+
+[dev-dependencies]
