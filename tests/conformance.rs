@@ -291,7 +291,10 @@ fn protocol_error_response_valid_code() {
         let raw: serde_json::Value =
             serde_json::from_str(&v.protocol_types.error_response).unwrap();
         let obj = raw.as_object().unwrap();
-        assert!(obj.contains_key("error_code"), "[{name}] missing error_code");
+        assert!(
+            obj.contains_key("error_code"),
+            "[{name}] missing error_code"
+        );
         assert!(
             obj.contains_key("error_message"),
             "[{name}] missing error_message"
@@ -322,15 +325,18 @@ fn protocol_error_response_valid_code() {
 fn hsm_keygen_request_spec_fields() {
     for (name, v) in vector_files() {
         // Must deserialize into spec type
-        let _req: HsmEcKeygenRequest =
-            serde_json::from_str(&v.hsm_service_types.ec_keygen_request)
-                .unwrap_or_else(|e| panic!("[{name}] keygen request: {e}"));
+        let _req: HsmEcKeygenRequest = serde_json::from_str(&v.hsm_service_types.ec_keygen_request)
+            .unwrap_or_else(|e| panic!("[{name}] keygen request: {e}"));
         // Verify only 'curve' field present (spec §1.2)
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.ec_keygen_request).unwrap();
         let obj = raw.as_object().unwrap();
         assert!(obj.contains_key("curve"), "[{name}] missing 'curve'");
-        assert_eq!(obj.len(), 1, "[{name}] keygen request should only have 'curve'");
+        assert_eq!(
+            obj.len(),
+            1,
+            "[{name}] keygen request should only have 'curve'"
+        );
     }
 }
 
@@ -348,10 +354,7 @@ fn hsm_keygen_response_spec_fields() {
             "[{name}] missing 'created_key' (spec §1.2)"
         );
         // Must NOT contain non-spec Go fields
-        assert!(
-            !obj.contains_key("kid"),
-            "[{name}] non-spec field 'kid'"
-        );
+        assert!(!obj.contains_key("kid"), "[{name}] non-spec field 'kid'");
         assert!(
             !obj.contains_key("pub_key"),
             "[{name}] non-spec field 'pub_key'"
@@ -362,9 +365,8 @@ fn hsm_keygen_response_spec_fields() {
 #[test]
 fn hsm_ecdsa_request_spec_fields() {
     for (name, v) in vector_files() {
-        let _req: HsmEcdsaRequest =
-            serde_json::from_str(&v.hsm_service_types.ecdsa_request)
-                .unwrap_or_else(|e| panic!("[{name}] ecdsa request: {e}"));
+        let _req: HsmEcdsaRequest = serde_json::from_str(&v.hsm_service_types.ecdsa_request)
+            .unwrap_or_else(|e| panic!("[{name}] ecdsa request: {e}"));
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.ecdsa_request).unwrap();
         let obj = raw.as_object().unwrap();
@@ -396,9 +398,8 @@ fn hsm_ecdsa_response_raw_der() {
 #[test]
 fn hsm_ecdh_request_spec_fields() {
     for (name, v) in vector_files() {
-        let _req: HsmEcdhRequest =
-            serde_json::from_str(&v.hsm_service_types.ecdh_request)
-                .unwrap_or_else(|e| panic!("[{name}] ecdh request: {e}"));
+        let _req: HsmEcdhRequest = serde_json::from_str(&v.hsm_service_types.ecdh_request)
+            .unwrap_or_else(|e| panic!("[{name}] ecdh request: {e}"));
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.ecdh_request).unwrap();
         let obj = raw.as_object().unwrap();
@@ -419,16 +420,19 @@ fn hsm_ecdh_response_raw_bytes() {
         let secret = hex::decode(&v.hsm_service_types.ecdh_response_hex)
             .unwrap_or_else(|e| panic!("[{name}] decode hex: {e}"));
         assert!(!secret.is_empty(), "[{name}] empty ECDH response");
-        assert_eq!(secret.len(), 32, "[{name}] P-256 shared secret should be 32 bytes");
+        assert_eq!(
+            secret.len(),
+            32,
+            "[{name}] P-256 shared secret should be 32 bytes"
+        );
     }
 }
 
 #[test]
 fn hsm_list_keys_request_spec_fields() {
     for (name, v) in vector_files() {
-        let _req: HsmListKeysRequest =
-            serde_json::from_str(&v.hsm_service_types.list_keys_request)
-                .unwrap_or_else(|e| panic!("[{name}] list_keys request: {e}"));
+        let _req: HsmListKeysRequest = serde_json::from_str(&v.hsm_service_types.list_keys_request)
+            .unwrap_or_else(|e| panic!("[{name}] list_keys request: {e}"));
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.list_keys_request).unwrap();
         let obj = raw.as_object().unwrap();
@@ -457,16 +461,22 @@ fn hsm_list_keys_response_spec_fields() {
             obj.contains_key("key_info"),
             "[{name}] missing 'key_info' (spec §2.2)"
         );
-        assert!(
-            !obj.contains_key("keys"),
-            "[{name}] non-spec field 'keys'"
-        );
+        assert!(!obj.contains_key("keys"), "[{name}] non-spec field 'keys'");
 
         for (i, ki) in resp.key_info.iter().enumerate() {
             assert!(!ki.kid.is_empty(), "[{name}] key_info[{i}].kid empty");
-            assert!(!ki.curve_name.is_empty(), "[{name}] key_info[{i}].curve_name empty");
-            assert!(ki.creation_time > 0, "[{name}] key_info[{i}].creation_time zero");
-            assert!(!ki.public_key.is_empty(), "[{name}] key_info[{i}].public_key empty");
+            assert!(
+                !ki.curve_name.is_empty(),
+                "[{name}] key_info[{i}].curve_name empty"
+            );
+            assert!(
+                ki.creation_time > 0,
+                "[{name}] key_info[{i}].creation_time zero"
+            );
+            assert!(
+                !ki.public_key.is_empty(),
+                "[{name}] key_info[{i}].public_key empty"
+            );
         }
     }
 }
@@ -535,7 +545,9 @@ fn all_error_codes() {
                     ne.name
                 );
                 assert!(
-                    raw["error_message"].as_str().map_or(false, |s| !s.is_empty()),
+                    raw["error_message"]
+                        .as_str()
+                        .map_or(false, |s| !s.is_empty()),
                     "[{name}/{}] error_message must not be empty",
                     ne.name
                 );
@@ -551,7 +563,10 @@ fn pake_registration_flow() {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
             assert_eq!(req["protocol"], "opaque", "[{name}] reg evaluate protocol");
             assert_eq!(req["state"], "evaluate", "[{name}] reg evaluate state");
-            assert!(req["req"].as_str().map_or(false, |s| !s.is_empty()), "[{name}] req empty");
+            assert!(
+                req["req"].as_str().map_or(false, |s| !s.is_empty()),
+                "[{name}] req empty"
+            );
         }
         if let Some(ref req_json) = v.protocol_types.pake_reg_finalize_req {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
@@ -575,7 +590,9 @@ fn pake_authentication_flow() {
         if let Some(ref resp_json) = v.protocol_types.pake_auth_evaluate_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
             assert!(
-                resp["pake_session_id"].as_str().map_or(false, |s| !s.is_empty()),
+                resp["pake_session_id"]
+                    .as_str()
+                    .map_or(false, |s| !s.is_empty()),
                 "[{name}] auth evaluate pake_session_id must be present (§3.3.3.2)"
             );
         }
@@ -592,9 +609,13 @@ fn pake_authentication_flow() {
         }
         if let Some(ref resp_json) = v.protocol_types.pake_auth_finalize_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
-            assert!(resp["pake_session_id"].as_str().map_or(false, |s| !s.is_empty()));
+            assert!(resp["pake_session_id"]
+                .as_str()
+                .map_or(false, |s| !s.is_empty()));
             assert!(resp["task"].as_str().map_or(false, |s| !s.is_empty()));
-            assert!(resp["session_expiration_time"].as_i64().map_or(false, |v| v > 0));
+            assert!(resp["session_expiration_time"]
+                .as_i64()
+                .map_or(false, |v| v > 0));
             assert_eq!(resp["msg"], "OK");
         }
     }
@@ -607,7 +628,8 @@ fn pake_pin_change_no_authorization() {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
             // Authorization MUST NOT be present for PIN change (§3.3.3.3)
             assert!(
-                req.get("authorization").map_or(true, |v| v.is_null() || v.as_str() == Some("")),
+                req.get("authorization")
+                    .map_or(true, |v| v.is_null() || v.as_str() == Some("")),
                 "[{name}] authorization must NOT be present for PIN change (spec §3.3.3.3)"
             );
         }
@@ -639,14 +661,25 @@ fn enc_mode_constraints() {
 fn hsm_keygen_multi_curve() {
     for (name, v) in vector_files() {
         for (curve, req_opt, resp_opt) in [
-            ("P-384", &v.hsm_service_types.keygen_p384_request, &v.hsm_service_types.keygen_p384_response),
-            ("P-521", &v.hsm_service_types.keygen_p521_request, &v.hsm_service_types.keygen_p521_response),
+            (
+                "P-384",
+                &v.hsm_service_types.keygen_p384_request,
+                &v.hsm_service_types.keygen_p384_response,
+            ),
+            (
+                "P-521",
+                &v.hsm_service_types.keygen_p521_request,
+                &v.hsm_service_types.keygen_p521_response,
+            ),
         ] {
             if let (Some(req_json), Some(resp_json)) = (req_opt, resp_opt) {
                 let req: HsmEcKeygenRequest = serde_json::from_str(req_json).unwrap();
                 assert_eq!(req.curve, curve, "[{name}] keygen {curve} curve mismatch");
                 let resp: HsmEcKeygenResponse = serde_json::from_str(resp_json).unwrap();
-                assert_eq!(resp.created_key, curve, "[{name}] keygen {curve} created_key mismatch");
+                assert_eq!(
+                    resp.created_key, curve,
+                    "[{name}] keygen {curve} created_key mismatch"
+                );
             }
         }
     }
@@ -661,8 +694,11 @@ fn hsm_list_all_keys_multi_curve() {
                 resp.key_info.len() >= 2,
                 "[{name}] list-all should return multiple keys"
             );
-            let curves: std::collections::HashSet<&str> =
-                resp.key_info.iter().map(|k| k.curve_name.as_str()).collect();
+            let curves: std::collections::HashSet<&str> = resp
+                .key_info
+                .iter()
+                .map(|k| k.curve_name.as_str())
+                .collect();
             assert!(
                 curves.len() >= 2,
                 "[{name}] list-all should contain multiple curves, got {curves:?}"
@@ -682,10 +718,16 @@ fn eudiw_wka_request_fields() {
         if let Some(ref eudiw) = v.eudiw_service_types {
             let raw: serde_json::Value = serde_json::from_str(&eudiw.wka_request).unwrap();
             let obj = raw.as_object().unwrap();
-            assert!(obj.contains_key("keys_to_attest"), "[{name}] missing keys_to_attest (EUDIW §1.1)");
+            assert!(
+                obj.contains_key("keys_to_attest"),
+                "[{name}] missing keys_to_attest (EUDIW §1.1)"
+            );
             assert!(obj.contains_key("ver"), "[{name}] missing ver (EUDIW §1.1)");
             let keys = raw["keys_to_attest"].as_array().unwrap();
-            assert!(!keys.is_empty(), "[{name}] keys_to_attest must be non-empty");
+            assert!(
+                !keys.is_empty(),
+                "[{name}] keys_to_attest must be non-empty"
+            );
         }
     }
 }
@@ -712,7 +754,10 @@ fn eudiw_wia_request_only_ver() {
             assert!(obj.contains_key("ver"), "[{name}] missing ver (EUDIW §2.1)");
             // WIA request has only 'ver'
             for key in obj.keys() {
-                assert_eq!(key, "ver", "[{name}] unexpected field '{key}' — EUDIW §2.1 defines only 'ver'");
+                assert_eq!(
+                    key, "ver",
+                    "[{name}] unexpected field '{key}' — EUDIW §2.1 defines only 'ver'"
+                );
             }
         }
     }
@@ -738,11 +783,17 @@ fn eudiw_version_identifier() {
         if let Some(ref eudiw) = v.eudiw_service_types {
             let wka_req: serde_json::Value = serde_json::from_str(&eudiw.wka_request).unwrap();
             let ver = wka_req["ver"].as_str().unwrap();
-            assert!(valid_versions.contains(&ver), "[{name}] WKA ver={ver} not in defined versions (EUDIW §3)");
+            assert!(
+                valid_versions.contains(&ver),
+                "[{name}] WKA ver={ver} not in defined versions (EUDIW §3)"
+            );
 
             let wia_req: serde_json::Value = serde_json::from_str(&eudiw.wia_request).unwrap();
             let ver = wia_req["ver"].as_str().unwrap();
-            assert!(valid_versions.contains(&ver), "[{name}] WIA ver={ver} not in defined versions (EUDIW §3)");
+            assert!(
+                valid_versions.contains(&ver),
+                "[{name}] WIA ver={ver} not in defined versions (EUDIW §3)"
+            );
         }
     }
 }

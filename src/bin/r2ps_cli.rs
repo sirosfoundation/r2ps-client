@@ -3,11 +3,7 @@ use std::path::PathBuf;
 use std::process;
 
 use clap::{Parser, Subcommand};
-use p256::{
-    pkcs8::DecodePrivateKey,
-    pkcs8::DecodePublicKey,
-    PublicKey, SecretKey,
-};
+use p256::{pkcs8::DecodePrivateKey, pkcs8::DecodePublicKey, PublicKey, SecretKey};
 use r2ps_client::{
     error::{R2psError, Result},
     PakeClient, R2psClient, Transport,
@@ -213,7 +209,10 @@ fn load_secret_key(path: &PathBuf) -> SecretKey {
 
 fn load_public_key(path: &PathBuf) -> PublicKey {
     let data = fs::read_to_string(path).unwrap_or_else(|e| {
-        eprintln!("error: cannot read server public key {}: {e}", path.display());
+        eprintln!(
+            "error: cannot read server public key {}: {e}",
+            path.display()
+        );
         process::exit(1);
     });
     let trimmed = data.trim();
@@ -351,19 +350,16 @@ fn main() {
                     println!("created_key: {}", resp.created_key);
 
                     // Step 2: List keys to find the new kid
-                    let list_req = serde_json::to_vec(&r2ps_client::HsmListKeysRequest {
-                        curve: vec![curve],
-                    })
-                    .unwrap();
+                    let list_req =
+                        serde_json::to_vec(&r2ps_client::HsmListKeysRequest { curve: vec![curve] })
+                            .unwrap();
 
                     if let Ok(list_bytes) = client.call_service("hsm_list_keys", &list_req) {
                         if let Ok(list_resp) =
                             serde_json::from_slice::<r2ps_client::HsmListKeysResponse>(&list_bytes)
                         {
-                            if let Some(newest) = list_resp
-                                .key_info
-                                .iter()
-                                .max_by_key(|k| k.creation_time)
+                            if let Some(newest) =
+                                list_resp.key_info.iter().max_by_key(|k| k.creation_time)
                             {
                                 println!("kid: {}", newest.kid);
                                 println!("public_key: {}", newest.public_key);
@@ -388,8 +384,8 @@ fn main() {
                 process::exit(1);
             }
 
-            let req = serde_json::to_vec(&r2ps_client::HsmListKeysRequest { curve: curves })
-                .unwrap();
+            let req =
+                serde_json::to_vec(&r2ps_client::HsmListKeysRequest { curve: curves }).unwrap();
 
             match client.call_service("hsm_list_keys", &req) {
                 Ok(resp_bytes) => {

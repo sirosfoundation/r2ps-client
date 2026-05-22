@@ -182,12 +182,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
 
         let req_json = serde_json::to_vec(&svc_req)?;
         let signing_key = SigningKey::from(&self.client_key);
-        let signed = jws::sign_jws(
-            &req_json,
-            &signing_key,
-            Some(&self.kid),
-            Some(TYP_REQUEST),
-        )?;
+        let signed = jws::sign_jws(&req_json, &signing_key, Some(&self.kid), Some(TYP_REQUEST))?;
 
         let resp_body = self.transport.send(signed.as_bytes())?;
 
@@ -241,12 +236,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
 
         let req_json = serde_json::to_vec(&svc_req)?;
         let signing_key = SigningKey::from(&self.client_key);
-        let signed = jws::sign_jws(
-            &req_json,
-            &signing_key,
-            Some(&self.kid),
-            Some(TYP_REQUEST),
-        )?;
+        let signed = jws::sign_jws(&req_json, &signing_key, Some(&self.kid), Some(TYP_REQUEST))?;
 
         let resp_body = self.transport.send(signed.as_bytes())?;
 

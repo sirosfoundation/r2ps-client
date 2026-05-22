@@ -1,5 +1,5 @@
 use base64ct::Encoding;
-use josekit::jws::{self as jose_jws, ES256, JwsHeader};
+use josekit::jws::{self as jose_jws, JwsHeader, ES256};
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use p256::pkcs8::{EncodePrivateKey, EncodePublicKey};
 
@@ -86,8 +86,7 @@ mod tests {
         let vk = VerifyingKey::from(&key);
         let payload = b"hello world";
 
-        let jws =
-            sign_jws(payload, &key, Some("test-kid"), Some("r2ps-request+json")).unwrap();
+        let jws = sign_jws(payload, &key, Some("test-kid"), Some("r2ps-request+json")).unwrap();
         let recovered = verify_jws(&jws, &vk).unwrap();
         assert_eq!(recovered, payload);
     }
@@ -95,8 +94,7 @@ mod tests {
     #[test]
     fn peek_headers() {
         let key = SigningKey::random(&mut OsRng);
-        let jws =
-            sign_jws(b"{}", &key, Some("my-kid"), Some("r2ps-request+json")).unwrap();
+        let jws = sign_jws(b"{}", &key, Some("my-kid"), Some("r2ps-request+json")).unwrap();
         let headers = peek_jws_headers(&jws).unwrap();
         assert_eq!(headers.kid.as_deref(), Some("my-kid"));
         assert_eq!(headers.typ.as_deref(), Some("r2ps-request+json"));
