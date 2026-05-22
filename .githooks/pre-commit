@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit hook: ensure code is formatted with cargo fmt
+
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "cargo not found, skipping format check"
+    exit 0
+fi
+
+echo "Running cargo fmt --check..."
+cargo fmt --all -- --check
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "ERROR: Code is not formatted. Run 'cargo fmt' and re-commit."
+    exit 1
+fi
