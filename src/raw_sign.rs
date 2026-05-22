@@ -27,7 +27,7 @@ pub trait RawSign {
 // --- HSM service type data structures (per remote-hsm-apake-service-types.md) ---
 
 /// EC key generation request (§1).
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct HsmEcKeygenRequest {
     pub curve: String,
 }
@@ -39,7 +39,7 @@ pub struct HsmEcKeygenResponse {
 }
 
 /// List HSM keys request (§2).
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct HsmListKeysRequest {
     pub curve: Vec<String>,
 }
@@ -64,7 +64,7 @@ pub struct HsmKeyInfo {
 }
 
 /// ECDSA sign request (§3).
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct HsmEcdsaRequest {
     pub kid: String,
     pub tbs_hash: String,
@@ -72,7 +72,7 @@ pub struct HsmEcdsaRequest {
 // ECDSA response: raw DER signature bytes (not JSON).
 
 /// ECDH request (§4).
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct HsmEcdhRequest {
     pub kid: String,
     /// SPKI DER-encoded public key of the other party (base64).
