@@ -10,8 +10,8 @@ use p256::{PublicKey, SecretKey};
 use r2ps_client::jwe::{decrypt_jwe, decrypt_jwe_symmetric, encrypt_jwe, encrypt_jwe_symmetric};
 use r2ps_client::jws::{peek_jws_headers, sign_jws, verify_jws};
 use r2ps_client::raw_sign::{
-    HsmEcKeygenRequest, HsmEcKeygenResponse, HsmEcdhRequest, HsmEcdsaRequest, HsmKeyInfo,
-    HsmListKeysRequest, HsmListKeysResponse,
+    HsmEcKeygenRequest, HsmEcKeygenResponse, HsmEcdhRequest, HsmEcdsaRequest, HsmListKeysRequest,
+    HsmListKeysResponse,
 };
 use serde::Deserialize;
 use std::path::Path;
@@ -20,6 +20,7 @@ use std::path::Path;
 
 #[derive(Deserialize)]
 struct TestVectors {
+    #[allow(dead_code)]
     generator: String,
     #[allow(dead_code)]
     version: String,
@@ -27,7 +28,6 @@ struct TestVectors {
     jws: JWSVectors,
     jwe_ecdh: JWEVectors,
     jwe_symmetric: JWEVectors,
-    #[allow(dead_code)]
     protocol_types: ProtocolTypes,
     hsm_service_types: HSMVectors,
     #[serde(default)]
@@ -59,7 +59,9 @@ struct JWEVectors {
 struct ProtocolTypes {
     service_request: String,
     service_response: String,
+    #[allow(dead_code)]
     pake_request: String,
+    #[allow(dead_code)]
     pake_response: String,
     error_response: String,
     #[serde(default)]
@@ -69,12 +71,14 @@ struct ProtocolTypes {
     #[serde(default)]
     pake_reg_evaluate_req: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pake_reg_evaluate_resp: Option<String>,
     #[serde(default)]
     pake_reg_finalize_req: Option<String>,
     #[serde(default)]
     pake_reg_finalize_resp: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pake_auth_evaluate_req: Option<String>,
     #[serde(default)]
     pake_auth_evaluate_resp: Option<String>,
@@ -83,6 +87,7 @@ struct ProtocolTypes {
     #[serde(default)]
     pake_auth_finalize_resp: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pake_pinchange_evaluate_req: Option<String>,
     #[serde(default)]
     pake_pinchange_finalize_req: Option<String>,
@@ -130,6 +135,7 @@ struct HSMVectors {
     #[serde(default)]
     keygen_p521_response: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     list_all_keys_request: Option<String>,
     #[serde(default)]
     list_all_keys_response: Option<String>,
@@ -810,7 +816,7 @@ fn generate_rust_vectors() {
     let secret_key = SecretKey::random(&mut OsRng);
     let public_key = secret_key.public_key();
     let signing_key = SigningKey::from(&secret_key);
-    let verifying_key = VerifyingKey::from(&signing_key);
+    let _verifying_key = VerifyingKey::from(&signing_key);
 
     // PEM encode keys
     use p256::pkcs8::{EncodePrivateKey, EncodePublicKey};

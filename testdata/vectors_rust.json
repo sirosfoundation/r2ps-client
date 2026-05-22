@@ -2,22 +2,22 @@
   "generator": "r2ps-client",
   "version": "1.0",
   "keys": {
-    "ec_private_pkcs8_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgcj182oyFI2PUHcRp\n4+GsV3SX3/FP+ryRvR0oCTCjmxKhRANCAATKN2ispyafHwinxrmcv2jmNurmmc44\nlXL4bT/ja+1dZzvZZeCD46EU1fAQk5iDyQsL8bvOv23hrULdWNCyH2/M\n-----END PRIVATE KEY-----\n",
-    "ec_public_spki_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEyjdorKcmnx8Ip8a5nL9o5jbq5pnO\nOJVy+G0/42vtXWc72WXgg+OhFNXwEJOYg8kLC/G7zr9t4a1C3VjQsh9vzA==\n-----END PUBLIC KEY-----\n",
-    "symmetric_key_hex": "2b8f5c008aede26e9bf1eb1b5f94ae40586226e4b3389d4994e4ab353489b055"
+    "ec_private_pkcs8_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgfhwWZ+IaGl6itni7\nblQeiIAD0VxTgvSvjVzJUS5/TqGhRANCAAReVduFR/geiIPZ9p4xLnYiUJWQ+yY9\nr6epDv9lVJOW5JmDhzaxawzb7aOZMOg4YeFcKJZOinM8ivY0HjLERWz4\n-----END PRIVATE KEY-----\n",
+    "ec_public_spki_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEXlXbhUf4HoiD2faeMS52IlCVkPsm\nPa+nqQ7/ZVSTluSZg4c2sWsM2+2jmTDoOGHhXCiWTopzPIr2NB4yxEVs+A==\n-----END PUBLIC KEY-----\n",
+    "symmetric_key_hex": "92a25ba08ce6020d6eb356a809bbfb17dc03b026fb6ddcbcf0299638a024d7f9"
   },
   "jws": {
-    "compact": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImNvbmZvcm1hbmNlLWtpZC0xIiwidHlwIjoicjJwcy1yZXF1ZXN0K2pzb24ifQ.aGVsbG8gaW50ZXJvcA.BWwuDooRw1HRRAGK0BdUwy1JkFqYOBc_-GjKJj5GQ1CSnsY3PfKHaFqsuUUwmCppPrZMGqlnxGVXaE_phQC21w",
+    "compact": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImNvbmZvcm1hbmNlLWtpZC0xIiwidHlwIjoicjJwcy1yZXF1ZXN0K2pzb24ifQ.aGVsbG8gaW50ZXJvcA.dhkAqNGM7HrcaOEGq-o9MSv0yqhySA9NbqyYEU5Fi8lweu6kyuzbAiSSdmiJSwG65Zk2cMjwhMxVdVFyDQ7_qA",
     "payload_hex": "68656c6c6f20696e7465726f70",
     "kid": "conformance-kid-1",
     "typ": "r2ps-request+json"
   },
   "jwe_ecdh": {
-    "compact": "eyJhbGciOiJFQ0RILUVTK0EyNTZLVyIsImVuYyI6IkEyNTZHQ00iLCJjdHkiOiJhcHBsaWNhdGlvbi9vY3RldC1zdHJlYW0iLCJlcGsiOnsia3R5IjoiRUMiLCJjcnYiOiJQLTI1NiIsIngiOiJRX3ZCRDlLXy1rRWwxa3JYbFZZdW1aaUxLb1dEVVItc1B5RktHNEF1THdVIiwieSI6InNnNks4dGo3dmY0ZXR4SGlfaHVVV2tNT2dtS0lzcmhlSVNzV1Vnbl9RWkkifX0.SCvJhQ579slVyHF9a0KGE0iv7RsRBTq5RPfFIi23I0a0g1rOKxJj2w.5usNbznLEFHKah-u.1O_NXWlqW2ULgNCyOCYji2xb6w.h50vvLuKogOeOj8aMAhfJA",
+    "compact": "eyJhbGciOiJFQ0RILUVTK0EyNTZLVyIsImVuYyI6IkEyNTZHQ00iLCJjdHkiOiJhcHBsaWNhdGlvbi9vY3RldC1zdHJlYW0iLCJlcGsiOnsia3R5IjoiRUMiLCJjcnYiOiJQLTI1NiIsIngiOiItS0owSy1NZFJRVWFRa0lIZjdDdUpSNndCa3Zkd0drb3k0ZDgzVVNtRkZzIiwieSI6IkJJbUN4V3UzcGlMOEd3ZGtLRFNHS3FhcExHdEU5T25aTUk5TC1mZFczNGcifX0.ll3QCMlKKRYv8WdkWpX0A6H8bXmjORojyXFdNBFhtkY_3skaH6koHQ.fBTMdJf6XPL6nvUa.z-fIjN2FvvFkgK_7oKzXJJk0xw.FA7VqHtNzYk619zJapdf8g",
     "plaintext_hex": "6563646820736563726574207061796c6f6164"
   },
   "jwe_symmetric": {
-    "compact": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwiY3R5IjoiYXBwbGljYXRpb24vb2N0ZXQtc3RyZWFtIn0..lmV-o5vxg0_UHLWL.mF9g69XKIA6-jakZN0ONBE0Lr8_yJi0r.Z1c_elfnCicuDwowwhJfYw",
+    "compact": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwiY3R5IjoiYXBwbGljYXRpb24vb2N0ZXQtc3RyZWFtIn0..pp65I7TO5x2DSk1q.ggDMExm4jh1QORotEaHlcwtEXU7L1xZn.PtVtJNO-4uBSNHaYwv1WZA",
     "plaintext_hex": "73796d6d657472696320736563726574207061796c6f6164"
   },
   "protocol_types": {
