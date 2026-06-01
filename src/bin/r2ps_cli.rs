@@ -9,7 +9,7 @@ use r2ps_client::{
     PakeClient, R2psClient, Transport,
 };
 
-/// R2PS command-line client for remote PAKE-protected signing.
+/// R2PS command-line client for remote PAKE-protected services.
 #[derive(Parser)]
 #[command(name = "r2ps-cli", version, about)]
 struct Cli {
@@ -20,10 +20,6 @@ struct Cli {
     /// Client identity
     #[arg(long, env = "R2PS_CLIENT_ID")]
     client_id: String,
-
-    /// Key identifier
-    #[arg(long, env = "R2PS_KID")]
-    kid: String,
 
     /// Security context
     #[arg(long, env = "R2PS_CONTEXT")]
@@ -43,25 +39,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Register a new PIN with the server
+    /// Register 2FA credentials with the server
     Register,
 
-    /// Authenticate and establish a PAKE session
-    Auth {
-        /// Session task identifier
-        #[arg(long, default_value = "sign")]
-        task: String,
-    },
+    /// Authenticate and establish a 2FA session
+    Auth,
 
-    /// Generate a remote EC key pair (requires prior auth)
+    /// Generate a remote P-256 key pair (requires prior auth)
     Keygen {
         /// EC curve name
         #[arg(long, default_value = "P-256")]
         curve: String,
-
-        /// Session task identifier used during authentication
-        #[arg(long, default_value = "sign")]
-        task: String,
     },
 
     /// List remote HSM keys (requires prior auth)
@@ -69,10 +57,6 @@ enum Command {
         /// Filter by curve names (e.g. P-256,P-384). Empty = all.
         #[arg(long, value_delimiter = ',')]
         curves: Vec<String>,
-
-        /// Session task identifier used during authentication
-        #[arg(long, default_value = "sign")]
-        task: String,
     },
 
     /// Sign a hash using a remote key (requires prior auth)
@@ -84,10 +68,6 @@ enum Command {
         /// Hex-encoded hash to sign
         #[arg(long)]
         hash: String,
-
-        /// Session task identifier used during authentication
-        #[arg(long, default_value = "sign")]
-        task: String,
     },
 
     /// Perform ECDH key agreement using a remote key (requires prior auth)
@@ -99,10 +79,6 @@ enum Command {
         /// Peer public key in SPKI DER base64
         #[arg(long)]
         peer_pub: String,
-
-        /// Session task identifier used during authentication
-        #[arg(long, default_value = "sign")]
-        task: String,
     },
 
     /// Probe server health
@@ -280,7 +256,6 @@ fn main() {
 
     let mut client = R2psClient::new(
         cli.client_id,
-        cli.kid,
         cli.context,
         client_key,
         server_pub,
@@ -305,12 +280,12 @@ fn main() {
             }
         }
 
-        Command::Auth { task } => {
+        Command::Auth => {
             let pin = rpassword::prompt_password("PIN: ").unwrap_or_else(|e| {
                 eprintln!("error: cannot read PIN: {e}");
                 process::exit(1);
             });
-            match client.authenticate(pin.as_bytes(), &task) {
+            match client.authenticate(pin.as_bytes()) {
                 Ok(()) => {
                     println!("authenticated");
                     if let Some(sid) = client.session_id() {
@@ -324,45 +299,41 @@ fn main() {
             }
         }
 
-        Command::Keygen { curve, task } => {
+        Command::Keygen { curve } => {
             let pin = rpassword::prompt_password("PIN: ").unwrap_or_else(|e| {
                 eprintln!("error: cannot read PIN: {e}");
                 process::exit(1);
             });
-            if let Err(e) = client.authenticate(pin.as_bytes(), &task) {
+            if let Err(e) = client.authenticate(pin.as_bytes()) {
                 eprintln!("error: authentication failed: {e}");
                 process::exit(1);
             }
 
             // Step 1: Create key
-            let req = serde_json::to_vec(&r2ps_client::HsmEcKeygenRequest {
-                curve: curve.clone(),
-            })
-            .unwrap();
+            let req = serde_json::json!({ "curve": curve });
 
-            match client.call_service("hsm_ec_keygen", &req) {
-                Ok(resp_bytes) => {
-                    let resp: r2ps_client::HsmEcKeygenResponse =
-                        serde_json::from_slice(&resp_bytes).unwrap_or_else(|e| {
-                            eprintln!("error: parse keygen response: {e}");
-                            process::exit(1);
-                        });
-                    println!("created_key: {}", resp.created_key);
+            match client.call_service("p256_generate", &req) {
+                Ok(resp) => {
+                    if let Some(key) = resp.get("created_key") {
+                        println!("created_key: {}", key);
+                    }
 
                     // Step 2: List keys to find the new kid
-                    let list_req =
-                        serde_json::to_vec(&r2ps_client::HsmListKeysRequest { curve: vec![curve] })
-                            .unwrap();
+                    let list_req = serde_json::json!({ "curve": [curve] });
 
-                    if let Ok(list_bytes) = client.call_service("hsm_list_keys", &list_req) {
-                        if let Ok(list_resp) =
-                            serde_json::from_slice::<r2ps_client::HsmListKeysResponse>(&list_bytes)
+                    if let Ok(list_resp) = client.call_service("hsm_list_keys", &list_req) {
+                        if let Some(key_info) = list_resp.get("key_info").and_then(|v| v.as_array())
                         {
-                            if let Some(newest) =
-                                list_resp.key_info.iter().max_by_key(|k| k.creation_time)
-                            {
-                                println!("kid: {}", newest.kid);
-                                println!("public_key: {}", newest.public_key);
+                            if let Some(newest) = key_info.iter().max_by_key(|k| {
+                                k.get("creation_time").and_then(|v| v.as_i64()).unwrap_or(0)
+                            }) {
+                                if let Some(kid) = newest.get("kid").and_then(|v| v.as_str()) {
+                                    println!("kid: {kid}");
+                                }
+                                if let Some(pk) = newest.get("public_key").and_then(|v| v.as_str())
+                                {
+                                    println!("public_key: {pk}");
+                                }
                             }
                         }
                     }
@@ -374,34 +345,35 @@ fn main() {
             }
         }
 
-        Command::ListKeys { curves, task } => {
+        Command::ListKeys { curves } => {
             let pin = rpassword::prompt_password("PIN: ").unwrap_or_else(|e| {
                 eprintln!("error: cannot read PIN: {e}");
                 process::exit(1);
             });
-            if let Err(e) = client.authenticate(pin.as_bytes(), &task) {
+            if let Err(e) = client.authenticate(pin.as_bytes()) {
                 eprintln!("error: authentication failed: {e}");
                 process::exit(1);
             }
 
-            let req =
-                serde_json::to_vec(&r2ps_client::HsmListKeysRequest { curve: curves }).unwrap();
+            let req = serde_json::json!({ "curve": curves });
 
             match client.call_service("hsm_list_keys", &req) {
-                Ok(resp_bytes) => {
-                    let resp: r2ps_client::HsmListKeysResponse =
-                        serde_json::from_slice(&resp_bytes).unwrap_or_else(|e| {
-                            eprintln!("error: parse list-keys response: {e}");
-                            process::exit(1);
-                        });
-                    for ki in &resp.key_info {
-                        println!(
-                            "kid={} curve={} created={} pub={}",
-                            ki.kid, ki.curve_name, ki.creation_time, ki.public_key
-                        );
-                    }
-                    if resp.key_info.is_empty() {
-                        println!("(no keys)");
+                Ok(resp) => {
+                    if let Some(key_info) = resp.get("key_info").and_then(|v| v.as_array()) {
+                        for ki in key_info {
+                            println!(
+                                "kid={} curve={} created={} pub={}",
+                                ki.get("kid").and_then(|v| v.as_str()).unwrap_or(""),
+                                ki.get("curve_name").and_then(|v| v.as_str()).unwrap_or(""),
+                                ki.get("creation_time")
+                                    .and_then(|v| v.as_i64())
+                                    .unwrap_or(0),
+                                ki.get("public_key").and_then(|v| v.as_str()).unwrap_or(""),
+                            );
+                        }
+                        if key_info.is_empty() {
+                            println!("(no keys)");
+                        }
                     }
                 }
                 Err(e) => {
@@ -414,13 +386,12 @@ fn main() {
         Command::Sign {
             kid: sign_kid,
             hash,
-            task,
         } => {
             let pin = rpassword::prompt_password("PIN: ").unwrap_or_else(|e| {
                 eprintln!("error: cannot read PIN: {e}");
                 process::exit(1);
             });
-            if let Err(e) = client.authenticate(pin.as_bytes(), &task) {
+            if let Err(e) = client.authenticate(pin.as_bytes()) {
                 eprintln!("error: authentication failed: {e}");
                 process::exit(1);
             }
@@ -430,16 +401,20 @@ fn main() {
                 process::exit(1);
             });
 
-            let req = serde_json::to_vec(&r2ps_client::HsmEcdsaRequest {
-                kid: sign_kid,
-                tbs_hash: base64ct::Base64::encode_string(&hash_bytes),
-            })
-            .unwrap();
+            let req = serde_json::json!({
+                "kid": sign_kid,
+                "tbs_hash": base64ct::Base64::encode_string(&hash_bytes),
+            });
 
-            match client.call_service("hsm_ecdsa", &req) {
-                // Response is raw DER signature bytes (not JSON)
-                Ok(sig_bytes) => {
-                    println!("{}", hex::encode(&sig_bytes));
+            match client.call_service("sign_ecdsa", &req) {
+                Ok(resp) => {
+                    if let Some(sig) = resp.as_str() {
+                        if let Ok(sig_bytes) = base64ct::Base64::decode_vec(sig) {
+                            println!("{}", hex::encode(&sig_bytes));
+                        } else {
+                            println!("{sig}");
+                        }
+                    }
                 }
                 Err(e) => {
                     eprintln!("error: sign failed: {e}");
@@ -451,27 +426,30 @@ fn main() {
         Command::Ecdh {
             kid: ecdh_kid,
             peer_pub,
-            task,
         } => {
             let pin = rpassword::prompt_password("PIN: ").unwrap_or_else(|e| {
                 eprintln!("error: cannot read PIN: {e}");
                 process::exit(1);
             });
-            if let Err(e) = client.authenticate(pin.as_bytes(), &task) {
+            if let Err(e) = client.authenticate(pin.as_bytes()) {
                 eprintln!("error: authentication failed: {e}");
                 process::exit(1);
             }
 
-            let req = serde_json::to_vec(&r2ps_client::HsmEcdhRequest {
-                kid: ecdh_kid,
-                public_key: peer_pub,
-            })
-            .unwrap();
+            let req = serde_json::json!({
+                "kid": ecdh_kid,
+                "public_key": peer_pub,
+            });
 
-            match client.call_service("hsm_ecdh", &req) {
-                // Response is raw shared secret bytes (not JSON)
-                Ok(secret_bytes) => {
-                    println!("{}", hex::encode(&secret_bytes));
+            match client.call_service("agree_ecdh", &req) {
+                Ok(resp) => {
+                    if let Some(secret) = resp.as_str() {
+                        if let Ok(secret_bytes) = base64ct::Base64::decode_vec(secret) {
+                            println!("{}", hex::encode(&secret_bytes));
+                        } else {
+                            println!("{secret}");
+                        }
+                    }
                 }
                 Err(e) => {
                     eprintln!("error: ecdh failed: {e}");

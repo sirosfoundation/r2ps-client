@@ -1,64 +1,66 @@
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 
-/// JWS payload for an R2PS service request (§3.1.1, §3.1.2).
+/// JWS payload for an R2PS service request (r2ps.md §3).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceRequest {
     pub ver: String,
     pub nonce: String,
     pub iat: i64,
-    pub enc: String,
-    pub data: String,
+    pub data: Box<RawValue>,
     pub client_id: String,
-    pub kid: String,
     pub context: String,
     #[serde(rename = "type")]
     pub service_type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pake_session_id: Option<String>,
+    #[serde(rename = "2fa_session_id", skip_serializing_if = "Option::is_none")]
+    pub tfa_session_id: Option<String>,
 }
 
-/// JWS payload for an R2PS service response (§3.1.1, §3.1.3).
+/// JWS payload for an R2PS service response (r2ps.md §3).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceResponse {
     pub ver: String,
     pub nonce: String,
     pub iat: i64,
-    pub enc: String,
-    pub data: String,
+    pub data: Box<RawValue>,
 }
 
-/// Error response returned on failure (§3.2).
+/// Error response returned on failure (r2ps.md §3.2).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub error_code: String,
     pub error_message: String,
 }
 
-/// Decrypted service data for PAKE requests (§3.3.1.1).
+/// 2FA request data (r2ps-service-types.md §5).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PakeRequest {
-    pub protocol: String,
+pub struct TFARequestData {
+    #[serde(rename = "2fa_mode")]
+    pub tfa_mode: String,
     pub state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authorization: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub task: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub session_duration: Option<i64>,
-    pub req: String,
+    pub request: String,
 }
 
-/// Decrypted service data for PAKE responses (§3.3.1.2).
+/// 2FA response data (r2ps-service-types.md §5).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PakeResponse {
+pub struct TFAResponseData {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pake_session_id: Option<String>,
+    pub response: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub resp: Option<String>,
+    pub message: Option<String>,
+}
+
+/// 2FA authentication response data — extends TFAResponseData with session info.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TFAAuthResponseData {
+    #[serde(rename = "2fa_session_id", skip_serializing_if = "Option::is_none")]
+    pub tfa_session_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub msg: Option<String>,
+    pub response: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub task: Option<String>,
+    pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_expiration_time: Option<i64>,
 }
@@ -66,28 +68,32 @@ pub struct PakeResponse {
 // Protocol version
 pub const PROTOCOL_VERSION: &str = "1.0";
 
-// Encryption modes
-pub const ENC_DEVICE: &str = "device";
-pub const ENC_USER: &str = "user";
+// 2FA mode identifiers
+pub const TFA_MODE_PASSWORD: &str = "password";
+pub const TFA_MODE_OPAQUE: &str = "opaque";
+pub const TFA_MODE_FIDO2: &str = "fido2";
 
-// PAKE protocol identifiers
-pub const PAKE_PROTOCOL_OPAQUE: &str = "opaque";
+// 2FA states
+pub const STATE_EVALUATE: &str = "evaluate";
+pub const STATE_FINALIZE: &str = "finalize";
+pub const STATE_CHALLENGE: &str = "challenge";
+pub const STATE_REGISTER: &str = "register";
 
-// PAKE states
-pub const PAKE_STATE_EVALUATE: &str = "evaluate";
-pub const PAKE_STATE_FINALIZE: &str = "finalize";
-
-// Service types (PAKE)
-pub const TYPE_PIN_REGISTRATION: &str = "pin_registration";
-pub const TYPE_PIN_CHANGE: &str = "pin_change";
-pub const TYPE_AUTHENTICATE: &str = "authenticate";
+// Service types (2FA)
+pub const TYPE_2FA_REGISTRATION: &str = "2fa_registration";
+pub const TYPE_2FA_AUTHENTICATE: &str = "2fa_authenticate";
+pub const TYPE_2FA_CHANGE: &str = "2fa_change";
 
 // Service types (HSM)
-pub const TYPE_HSM_EC_KEYGEN: &str = "hsm_ec_keygen";
-pub const TYPE_HSM_ECDSA: &str = "hsm_ecdsa";
-pub const TYPE_HSM_ECDH: &str = "hsm_ecdh";
+pub const TYPE_P256_GENERATE: &str = "p256_generate";
+pub const TYPE_SIGN_ECDSA: &str = "sign_ecdsa";
+pub const TYPE_AGREE_ECDH: &str = "agree_ecdh";
 pub const TYPE_HSM_LIST_KEYS: &str = "hsm_list_keys";
 
+// EUDIW service types
+pub const TYPE_EUDIW_WKA_ETSI: &str = "eudiw_wka_etsi";
+pub const TYPE_EUDIW_WIA_ETSI: &str = "eudiw_wia_etsi";
+
 // JWS typ header values
-pub const TYP_REQUEST: &str = "r2ps-request+json";
-pub const TYP_RESPONSE: &str = "r2ps-response+json";
+pub const TYP_REQUEST: &str = "r2ps-request+jwt";
+pub const TYP_RESPONSE: &str = "r2ps-response+jwt";

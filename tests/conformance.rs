@@ -32,6 +32,9 @@ struct TestVectors {
     hsm_service_types: HSMVectors,
     #[serde(default)]
     eudiw_service_types: Option<EUDIWVectors>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    hkdf_vectors: Option<HKDFVectors>,
 }
 
 #[derive(Deserialize)]
@@ -60,39 +63,40 @@ struct ProtocolTypes {
     service_request: String,
     service_response: String,
     #[allow(dead_code)]
-    pake_request: String,
+    tfa_request: String,
     #[allow(dead_code)]
-    pake_response: String,
+    tfa_response: String,
     error_response: String,
     #[serde(default)]
     request_response_pairs: Option<Vec<RequestResponsePair>>,
     #[serde(default)]
     all_error_responses: Option<Vec<NamedJSON>>,
     #[serde(default)]
-    pake_reg_evaluate_req: Option<String>,
+    tfa_reg_evaluate_req: Option<String>,
     #[serde(default)]
     #[allow(dead_code)]
-    pake_reg_evaluate_resp: Option<String>,
+    tfa_reg_evaluate_resp: Option<String>,
     #[serde(default)]
-    pake_reg_finalize_req: Option<String>,
+    tfa_reg_finalize_req: Option<String>,
     #[serde(default)]
-    pake_reg_finalize_resp: Option<String>,
-    #[serde(default)]
-    #[allow(dead_code)]
-    pake_auth_evaluate_req: Option<String>,
-    #[serde(default)]
-    pake_auth_evaluate_resp: Option<String>,
-    #[serde(default)]
-    pake_auth_finalize_req: Option<String>,
-    #[serde(default)]
-    pake_auth_finalize_resp: Option<String>,
+    tfa_reg_finalize_resp: Option<String>,
     #[serde(default)]
     #[allow(dead_code)]
-    pake_pinchange_evaluate_req: Option<String>,
+    tfa_auth_evaluate_req: Option<String>,
     #[serde(default)]
-    pake_pinchange_finalize_req: Option<String>,
+    tfa_auth_evaluate_resp: Option<String>,
     #[serde(default)]
-    enc_mode_constraints: Option<Vec<EncModeConstraint>>,
+    #[allow(dead_code)]
+    tfa_auth_finalize_req: Option<String>,
+    #[serde(default)]
+    tfa_auth_finalize_resp: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    tfa_change_evaluate_req: Option<String>,
+    #[serde(default)]
+    tfa_change_finalize_req: Option<String>,
+    #[serde(default)]
+    mode_constraints: Option<Vec<ModeConstraint>>,
 }
 
 #[derive(Deserialize)]
@@ -109,11 +113,10 @@ struct NamedJSON {
 }
 
 #[derive(Deserialize)]
-struct EncModeConstraint {
+struct ModeConstraint {
     #[serde(rename = "type")]
     service_type: String,
-    required_enc: String,
-    request_json: String,
+    required_mode: String,
 }
 
 #[derive(Deserialize)]
@@ -147,6 +150,15 @@ struct EUDIWVectors {
     wka_response: String,
     wia_request: String,
     wia_response: String,
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct HKDFVectors {
+    session_key_hex: String,
+    session_id: String,
+    kek_c2s_hex: String,
+    kek_s2c_hex: String,
 }
 
 fn load_vectors(path: &str) -> Option<TestVectors> {
@@ -240,7 +252,7 @@ fn jwe_decrypt_symmetric() {
 }
 
 // ============================================================
-// Layer 2: Protocol type field conformance (R2PS spec §3)
+// Layer 2: Protocol type field conformance (r2ps.md §3)
 // ============================================================
 
 #[test]
@@ -249,15 +261,13 @@ fn protocol_service_request_fields() {
         let raw: serde_json::Value =
             serde_json::from_str(&v.protocol_types.service_request).unwrap();
         let obj = raw.as_object().unwrap();
-        // Required fields per spec §3.1.1 + §3.1.2
+        // Required fields per r2ps.md §3
         for field in &[
             "ver",
             "nonce",
             "iat",
-            "enc",
             "data",
             "client_id",
-            "kid",
             "context",
             "type",
         ] {
@@ -267,10 +277,14 @@ fn protocol_service_request_fields() {
             );
         }
         assert_eq!(obj["ver"], "1.0", "[{name}] ver must be 1.0");
-        let enc = obj["enc"].as_str().unwrap();
+        // enc and kid MUST NOT be present (removed in current spec)
         assert!(
-            enc == "device" || enc == "user",
-            "[{name}] enc must be 'device' or 'user', got '{enc}'"
+            !obj.contains_key("enc"),
+            "[{name}] service_request MUST NOT contain 'enc' (removed in current spec)"
+        );
+        assert!(
+            !obj.contains_key("kid"),
+            "[{name}] service_request MUST NOT contain 'kid' (removed from payload)"
         );
     }
 }
@@ -281,11 +295,11 @@ fn protocol_service_response_no_request_fields() {
         let raw: serde_json::Value =
             serde_json::from_str(&v.protocol_types.service_response).unwrap();
         let obj = raw.as_object().unwrap();
-        // Response MUST NOT contain request-only fields (spec §3.1.3)
-        for field in &["client_id", "kid", "context", "type", "pake_session_id"] {
+        // Response MUST NOT contain request-only fields
+        for field in &["client_id", "context", "type", "2fa_session_id"] {
             assert!(
                 !obj.contains_key(*field),
-                "[{name}] service_response MUST NOT contain '{field}' (spec §3.1.3)"
+                "[{name}] service_response MUST NOT contain '{field}'"
             );
         }
     }
@@ -323,17 +337,14 @@ fn protocol_error_response_valid_code() {
 }
 
 // ============================================================
-// Layer 3: HSM service type conformance
-// (spec: security/remote-hsm-apake-service-types.md)
+// Layer 3: HSM service type conformance (r2ps-service-types.md)
 // ============================================================
 
 #[test]
 fn hsm_keygen_request_spec_fields() {
     for (name, v) in vector_files() {
-        // Must deserialize into spec type
         let _req: HsmEcKeygenRequest = serde_json::from_str(&v.hsm_service_types.ec_keygen_request)
             .unwrap_or_else(|e| panic!("[{name}] keygen request: {e}"));
-        // Verify only 'curve' field present (spec §1.2)
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.ec_keygen_request).unwrap();
         let obj = raw.as_object().unwrap();
@@ -357,9 +368,8 @@ fn hsm_keygen_response_spec_fields() {
         let obj = raw.as_object().unwrap();
         assert!(
             obj.contains_key("created_key"),
-            "[{name}] missing 'created_key' (spec §1.2)"
+            "[{name}] missing 'created_key'"
         );
-        // Must NOT contain non-spec Go fields
         assert!(!obj.contains_key("kid"), "[{name}] non-spec field 'kid'");
         assert!(
             !obj.contains_key("pub_key"),
@@ -376,13 +386,10 @@ fn hsm_ecdsa_request_spec_fields() {
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.ecdsa_request).unwrap();
         let obj = raw.as_object().unwrap();
-        assert!(
-            obj.contains_key("tbs_hash"),
-            "[{name}] missing 'tbs_hash' (spec §3.2)"
-        );
+        assert!(obj.contains_key("tbs_hash"), "[{name}] missing 'tbs_hash'");
         assert!(
             !obj.contains_key("hash"),
-            "[{name}] non-spec field 'hash' — spec §3.2 requires 'tbs_hash'"
+            "[{name}] non-spec field 'hash' — spec requires 'tbs_hash'"
         );
     }
 }
@@ -390,7 +397,6 @@ fn hsm_ecdsa_request_spec_fields() {
 #[test]
 fn hsm_ecdsa_response_raw_der() {
     for (name, v) in vector_files() {
-        // Spec §3.2: response is raw DER bytes
         let sig = hex::decode(&v.hsm_service_types.ecdsa_response_hex)
             .unwrap_or_else(|e| panic!("[{name}] decode hex: {e}"));
         assert!(!sig.is_empty(), "[{name}] empty ECDSA response");
@@ -411,7 +417,7 @@ fn hsm_ecdh_request_spec_fields() {
         let obj = raw.as_object().unwrap();
         assert!(
             obj.contains_key("public_key"),
-            "[{name}] missing 'public_key' (spec §4.2)"
+            "[{name}] missing 'public_key'"
         );
         assert!(
             !obj.contains_key("peer_pub_key"),
@@ -442,13 +448,10 @@ fn hsm_list_keys_request_spec_fields() {
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.list_keys_request).unwrap();
         let obj = raw.as_object().unwrap();
-        assert!(
-            obj.contains_key("curve"),
-            "[{name}] missing 'curve' (spec §2.2)"
-        );
+        assert!(obj.contains_key("curve"), "[{name}] missing 'curve'");
         assert!(
             !obj.contains_key("curves"),
-            "[{name}] non-spec field 'curves' — spec §2.2 uses 'curve'"
+            "[{name}] non-spec field 'curves' — spec uses 'curve'"
         );
     }
 }
@@ -463,10 +466,7 @@ fn hsm_list_keys_response_spec_fields() {
         let raw: serde_json::Value =
             serde_json::from_str(&v.hsm_service_types.list_keys_response).unwrap();
         let obj = raw.as_object().unwrap();
-        assert!(
-            obj.contains_key("key_info"),
-            "[{name}] missing 'key_info' (spec §2.2)"
-        );
+        assert!(obj.contains_key("key_info"), "[{name}] missing 'key_info'");
         assert!(!obj.contains_key("keys"), "[{name}] non-spec field 'keys'");
 
         for (i, ki) in resp.key_info.iter().enumerate() {
@@ -488,7 +488,7 @@ fn hsm_list_keys_response_spec_fields() {
 }
 
 // ============================================================
-// Extended Protocol Conformance (rp2s-peter.md)
+// Extended Protocol Conformance
 // ============================================================
 
 #[test]
@@ -500,7 +500,7 @@ fn nonce_echo_validation() {
                 let resp: serde_json::Value = serde_json::from_str(&pair.response).unwrap();
                 assert_eq!(
                     req["nonce"], resp["nonce"],
-                    "[{name}/{}] nonce must echo (spec §3.1.3)",
+                    "[{name}/{}] nonce must echo",
                     pair.name
                 );
             }
@@ -515,10 +515,10 @@ fn response_forbidden_fields() {
             for pair in pairs {
                 let resp: serde_json::Value = serde_json::from_str(&pair.response).unwrap();
                 let obj = resp.as_object().unwrap();
-                for field in &["client_id", "kid", "context", "type", "pake_session_id"] {
+                for field in &["client_id", "context", "type", "2fa_session_id"] {
                     assert!(
                         !obj.contains_key(*field),
-                        "[{name}/{}] response contains request-only field '{}' (spec §3.1.3)",
+                        "[{name}/{}] response contains request-only field '{}'",
                         pair.name,
                         field
                     );
@@ -563,96 +563,85 @@ fn all_error_codes() {
 }
 
 #[test]
-fn pake_registration_flow() {
+fn tfa_registration_flow() {
     for (name, v) in vector_files() {
-        if let Some(ref req_json) = v.protocol_types.pake_reg_evaluate_req {
+        if let Some(ref req_json) = v.protocol_types.tfa_reg_evaluate_req {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
-            assert_eq!(req["protocol"], "opaque", "[{name}] reg evaluate protocol");
+            assert_eq!(req["2fa_mode"], "opaque", "[{name}] reg evaluate 2fa_mode");
             assert_eq!(req["state"], "evaluate", "[{name}] reg evaluate state");
             assert!(
-                req["req"].as_str().map_or(false, |s| !s.is_empty()),
-                "[{name}] req empty"
+                req["request"].as_str().map_or(false, |s| !s.is_empty()),
+                "[{name}] request empty"
             );
         }
-        if let Some(ref req_json) = v.protocol_types.pake_reg_finalize_req {
+        if let Some(ref req_json) = v.protocol_types.tfa_reg_finalize_req {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
             assert_eq!(req["state"], "finalize", "[{name}] reg finalize state");
-            // Authorization MUST be present for initial registration (§3.3.3.1)
             assert!(
-                req["authorization"].as_str().map_or(false, |s| !s.is_empty()),
-                "[{name}] authorization must be present for initial PIN registration (spec §3.3.3.1)"
+                req["authorization"]
+                    .as_str()
+                    .map_or(false, |s| !s.is_empty()),
+                "[{name}] authorization must be present for initial 2FA registration"
             );
         }
-        if let Some(ref resp_json) = v.protocol_types.pake_reg_finalize_resp {
+        if let Some(ref resp_json) = v.protocol_types.tfa_reg_finalize_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
-            assert_eq!(resp["msg"], "OK", "[{name}] reg finalize msg");
+            assert!(
+                resp["message"].as_str().map_or(false, |s| !s.is_empty()),
+                "[{name}] reg finalize message"
+            );
         }
     }
 }
 
 #[test]
-fn pake_authentication_flow() {
+fn tfa_authentication_flow() {
     for (name, v) in vector_files() {
-        if let Some(ref resp_json) = v.protocol_types.pake_auth_evaluate_resp {
+        if let Some(ref resp_json) = v.protocol_types.tfa_auth_evaluate_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
             assert!(
-                resp["pake_session_id"]
+                resp["2fa_session_id"]
                     .as_str()
                     .map_or(false, |s| !s.is_empty()),
-                "[{name}] auth evaluate pake_session_id must be present (§3.3.3.2)"
+                "[{name}] auth evaluate 2fa_session_id must be present"
             );
         }
-        if let Some(ref req_json) = v.protocol_types.pake_auth_finalize_req {
-            let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
-            assert!(
-                req["task"].as_str().map_or(false, |s| !s.is_empty()),
-                "[{name}] auth finalize task must be present (§3.3.3.2)"
-            );
-            assert!(
-                req["session_duration"].as_i64().map_or(false, |v| v > 0),
-                "[{name}] auth finalize session_duration must be present (§3.3.3.2)"
-            );
-        }
-        if let Some(ref resp_json) = v.protocol_types.pake_auth_finalize_resp {
+        if let Some(ref resp_json) = v.protocol_types.tfa_auth_finalize_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
-            assert!(resp["pake_session_id"]
+            assert!(resp["2fa_session_id"]
                 .as_str()
                 .map_or(false, |s| !s.is_empty()));
-            assert!(resp["task"].as_str().map_or(false, |s| !s.is_empty()));
             assert!(resp["session_expiration_time"]
                 .as_i64()
                 .map_or(false, |v| v > 0));
-            assert_eq!(resp["msg"], "OK");
         }
     }
 }
 
 #[test]
-fn pake_pin_change_no_authorization() {
+fn tfa_change_no_authorization() {
     for (name, v) in vector_files() {
-        if let Some(ref req_json) = v.protocol_types.pake_pinchange_finalize_req {
+        if let Some(ref req_json) = v.protocol_types.tfa_change_finalize_req {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
-            // Authorization MUST NOT be present for PIN change (§3.3.3.3)
             assert!(
                 req.get("authorization")
                     .map_or(true, |v| v.is_null() || v.as_str() == Some("")),
-                "[{name}] authorization must NOT be present for PIN change (spec §3.3.3.3)"
+                "[{name}] authorization must NOT be present for 2FA change"
             );
         }
     }
 }
 
 #[test]
-fn enc_mode_constraints() {
+fn mode_constraints() {
     for (name, v) in vector_files() {
-        if let Some(ref constraints) = v.protocol_types.enc_mode_constraints {
+        if let Some(ref constraints) = v.protocol_types.mode_constraints {
             for c in constraints {
-                let req: serde_json::Value = serde_json::from_str(&c.request_json).unwrap();
-                let enc = req["enc"].as_str().unwrap();
-                assert_eq!(
-                    enc, c.required_enc,
-                    "[{name}] enc={enc} for type {}, spec requires {}",
-                    c.service_type, c.required_enc
+                assert!(
+                    c.required_mode == "1FA" || c.required_mode == "2FA",
+                    "[{name}] mode={} for type {}, expected 1FA or 2FA",
+                    c.required_mode,
+                    c.service_type
                 );
             }
         }
@@ -715,7 +704,7 @@ fn hsm_list_all_keys_multi_curve() {
 
 // ============================================================
 // EUDIW Service Type Conformance
-// (spec: security/r2ps-service-types-eudiw.md)
+// (spec: r2ps-service-types-eudiw.md)
 // ============================================================
 
 #[test]
@@ -726,9 +715,9 @@ fn eudiw_wka_request_fields() {
             let obj = raw.as_object().unwrap();
             assert!(
                 obj.contains_key("keys_to_attest"),
-                "[{name}] missing keys_to_attest (EUDIW §1.1)"
+                "[{name}] missing keys_to_attest"
             );
-            assert!(obj.contains_key("ver"), "[{name}] missing ver (EUDIW §1.1)");
+            assert!(obj.contains_key("ver"), "[{name}] missing ver");
             let keys = raw["keys_to_attest"].as_array().unwrap();
             assert!(
                 !keys.is_empty(),
@@ -744,27 +733,24 @@ fn eudiw_wka_response_fields() {
         if let Some(ref eudiw) = v.eudiw_service_types {
             let raw: serde_json::Value = serde_json::from_str(&eudiw.wka_response).unwrap();
             assert!(
-                raw["attestation"].as_str().map_or(false, |s| !s.is_empty()),
-                "[{name}] attestation must not be empty (EUDIW §1.1)"
+                raw["wka"].as_str().map_or(false, |s| !s.is_empty()),
+                "[{name}] wka must not be empty"
             );
         }
     }
 }
 
 #[test]
-fn eudiw_wia_request_only_ver() {
+fn eudiw_wia_request_fields() {
     for (name, v) in vector_files() {
         if let Some(ref eudiw) = v.eudiw_service_types {
             let raw: serde_json::Value = serde_json::from_str(&eudiw.wia_request).unwrap();
             let obj = raw.as_object().unwrap();
-            assert!(obj.contains_key("ver"), "[{name}] missing ver (EUDIW §2.1)");
-            // WIA request has only 'ver'
-            for key in obj.keys() {
-                assert_eq!(
-                    key, "ver",
-                    "[{name}] unexpected field '{key}' — EUDIW §2.1 defines only 'ver'"
-                );
-            }
+            assert!(obj.contains_key("ver"), "[{name}] missing ver");
+            assert!(
+                obj.contains_key("keys_to_attest"),
+                "[{name}] missing keys_to_attest"
+            );
         }
     }
 }
@@ -775,8 +761,8 @@ fn eudiw_wia_response_fields() {
         if let Some(ref eudiw) = v.eudiw_service_types {
             let raw: serde_json::Value = serde_json::from_str(&eudiw.wia_response).unwrap();
             assert!(
-                raw["attestation"].as_str().map_or(false, |s| !s.is_empty()),
-                "[{name}] attestation must not be empty (EUDIW §2.1)"
+                raw["wia"].as_str().map_or(false, |s| !s.is_empty()),
+                "[{name}] wia must not be empty"
             );
         }
     }
@@ -784,21 +770,21 @@ fn eudiw_wia_response_fields() {
 
 #[test]
 fn eudiw_version_identifier() {
-    let valid_versions = ["d008"]; // ETSI TS 119 476-3 V0.0.8
+    let valid_versions = ["draft-008"];
     for (name, v) in vector_files() {
         if let Some(ref eudiw) = v.eudiw_service_types {
             let wka_req: serde_json::Value = serde_json::from_str(&eudiw.wka_request).unwrap();
             let ver = wka_req["ver"].as_str().unwrap();
             assert!(
                 valid_versions.contains(&ver),
-                "[{name}] WKA ver={ver} not in defined versions (EUDIW §3)"
+                "[{name}] WKA ver={ver} not in defined versions"
             );
 
             let wia_req: serde_json::Value = serde_json::from_str(&eudiw.wia_request).unwrap();
             let ver = wia_req["ver"].as_str().unwrap();
             assert!(
                 valid_versions.contains(&ver),
-                "[{name}] WIA ver={ver} not in defined versions (EUDIW §3)"
+                "[{name}] WIA ver={ver} not in defined versions"
             );
         }
     }
@@ -829,10 +815,10 @@ fn generate_rust_vectors() {
 
     let sym_key: [u8; 32] = rand::random();
 
-    // JWS
+    // JWS — new typ value
     let payload = b"hello interop";
     let kid = "conformance-kid-1";
-    let typ = "r2ps-request+json";
+    let typ = "r2ps-request+jwt";
     let jws_compact = sign_jws(payload, &signing_key, Some(kid), Some(typ)).unwrap();
 
     // JWE ECDH
@@ -843,44 +829,130 @@ fn generate_rust_vectors() {
     let sym_plain = b"symmetric secret payload";
     let jwe_sym = encrypt_jwe_symmetric(sym_plain, &sym_key).unwrap();
 
-    // Protocol types (minimal but spec-compliant)
+    // Protocol types — new spec structure (no enc, no kid in payload)
     let svc_req = serde_json::json!({
         "ver": "1.0",
         "nonce": "dGVzdG5vbmNl",
         "iat": 1716400000,
-        "enc": "device",
-        "data": "eyJhbGciOiJFQ0RILUVTK0EyNTZLVyJ9...",
+        "data": {"kid": "key-0", "tbs_hash": "YUHJYg=="},
         "client_id": "test-client",
-        "kid": "key-1",
-        "context": "signing",
-        "type": "hsm_ecdsa",
-        "pake_session_id": "session-abc"
+        "context": "hsm",
+        "type": "sign_ecdsa",
+        "2fa_session_id": "session-abc"
     });
     let svc_resp = serde_json::json!({
         "ver": "1.0",
         "nonce": "cmVzcG5vbmNl",
         "iat": 1716400001,
-        "enc": "user",
-        "data": "eyJhbGciOiJkaXIifQ..."
+        "data": {"signature": "MEQCIG..."}
     });
-    let pake_req = serde_json::json!({
-        "protocol": "opaque",
+    let tfa_req = serde_json::json!({
+        "2fa_mode": "opaque",
         "state": "evaluate",
-        "task": "sign",
-        "req": "b3BhcXVlLXJlcXVlc3Q"
+        "request": "b3BhcXVlLXJlcXVlc3Q"
     });
-    let pake_resp = serde_json::json!({
-        "pake_session_id": "sess-123",
-        "resp": "b3BhcXVlLXJlc3BvbnNl",
-        "task": "sign",
-        "session_expiration_time": 1716403600
+    let tfa_resp = serde_json::json!({
+        "response": "b3BhcXVlLXJlc3BvbnNl"
     });
     let err_resp = serde_json::json!({
         "error_code": "UNAUTHORIZED",
         "error_message": "invalid credentials"
     });
 
-    // HSM service types (spec-compliant)
+    // 2FA registration flow
+    let tfa_reg_eval_req = serde_json::json!({
+        "2fa_mode": "opaque",
+        "state": "evaluate",
+        "request": "cmVnaXN0cmF0aW9uLXJlcXVlc3Q"
+    });
+    let tfa_reg_eval_resp = serde_json::json!({
+        "response": "cmVnaXN0cmF0aW9uLXJlc3BvbnNl"
+    });
+    let tfa_reg_fin_req = serde_json::json!({
+        "2fa_mode": "opaque",
+        "state": "finalize",
+        "request": "cmVnaXN0cmF0aW9uLXJlY29yZA",
+        "authorization": "YXV0aG9yaXphdGlvbi1kYXRh"
+    });
+    let tfa_reg_fin_resp = serde_json::json!({
+        "message": "success"
+    });
+
+    // 2FA auth flow
+    let tfa_auth_eval_req = serde_json::json!({
+        "2fa_mode": "opaque",
+        "state": "evaluate",
+        "request": "S0UxLWJ5dGVz"
+    });
+    let tfa_auth_eval_resp = serde_json::json!({
+        "2fa_session_id": "auth-session-001",
+        "response": "S0UyLWJ5dGVz"
+    });
+    let tfa_auth_fin_req = serde_json::json!({
+        "2fa_mode": "opaque",
+        "state": "finalize",
+        "request": "S0UzLWJ5dGVz"
+    });
+    let tfa_auth_fin_resp = serde_json::json!({
+        "2fa_session_id": "auth-session-001",
+        "message": "authenticated",
+        "session_expiration_time": 1716403600
+    });
+
+    // 2FA change flow
+    let tfa_chg_eval_req = serde_json::json!({
+        "2fa_mode": "opaque",
+        "state": "evaluate",
+        "request": "bmV3LXJlZ2lzdHJhdGlvbi1yZXF1ZXN0"
+    });
+    let tfa_chg_fin_req = serde_json::json!({
+        "2fa_mode": "opaque",
+        "state": "finalize",
+        "request": "bmV3LXJlZ2lzdHJhdGlvbi1yZWNvcmQ"
+    });
+
+    // Mode constraints
+    let mode_constraints = serde_json::json!([
+        {"type": "2fa_registration", "required_mode": "1FA"},
+        {"type": "2fa_authenticate", "required_mode": "1FA"},
+        {"type": "2fa_change", "required_mode": "2FA"},
+        {"type": "p256_generate", "required_mode": "1FA"},
+        {"type": "sign_ecdsa", "required_mode": "2FA"},
+        {"type": "agree_ecdh", "required_mode": "2FA"},
+        {"type": "eudiw_wka_etsi", "required_mode": "1FA"},
+        {"type": "eudiw_wia_etsi", "required_mode": "1FA"}
+    ]);
+
+    // Request/response pair
+    let pair_req = serde_json::json!({
+        "ver": "1.0",
+        "nonce": "Y29uZm9ybWFuY2Vub25jZQ",
+        "iat": 1716400000,
+        "data": {"kid": "key-0", "tbs_hash": "YUHJYg=="},
+        "client_id": "test-client",
+        "context": "hsm",
+        "type": "sign_ecdsa",
+        "2fa_session_id": "session-abc"
+    });
+    let pair_resp = serde_json::json!({
+        "ver": "1.0",
+        "nonce": "Y29uZm9ybWFuY2Vub25jZQ",
+        "iat": 1716400001,
+        "data": {"signature": "MEQCIG..."}
+    });
+
+    // All error codes
+    let all_errors = serde_json::json!([
+        {"name": "ILLEGAL_REQUEST_DATA", "json": "{\"error_code\":\"ILLEGAL_REQUEST_DATA\",\"error_message\":\"malformed request\"}"},
+        {"name": "UNAUTHORIZED", "json": "{\"error_code\":\"UNAUTHORIZED\",\"error_message\":\"invalid credentials\"}"},
+        {"name": "ACCESS_DENIED", "json": "{\"error_code\":\"ACCESS_DENIED\",\"error_message\":\"service not allowed\"}"},
+        {"name": "ILLEGAL_STATE", "json": "{\"error_code\":\"ILLEGAL_STATE\",\"error_message\":\"unexpected state\"}"},
+        {"name": "UNSUPPORTED_REQUEST_TYPE", "json": "{\"error_code\":\"UNSUPPORTED_REQUEST_TYPE\",\"error_message\":\"unknown type\"}"},
+        {"name": "SERVER_ERROR", "json": "{\"error_code\":\"SERVER_ERROR\",\"error_message\":\"internal error\"}"},
+        {"name": "TRY_LATER", "json": "{\"error_code\":\"TRY_LATER\",\"error_message\":\"service busy\"}"}
+    ]);
+
+    // HSM service types
     let keygen_req = serde_json::to_string(&HsmEcKeygenRequest {
         curve: "P-256".into(),
     })
@@ -910,6 +982,12 @@ fn generate_rust_vectors() {
         }]
     });
 
+    // EUDIW service types — per r2ps-service-types-eudiw.md
+    let wka_req = serde_json::json!({"keys_to_attest": ["key-0"], "ver": "draft-008"});
+    let wka_resp = serde_json::json!({"wka": "eyJ0eXAiOiJrZXktYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYifQ.eyJpYXQiOjE3MTY0MDAwMDB9.fake-signature"});
+    let wia_req = serde_json::json!({"keys_to_attest": ["key-0"], "ver": "draft-008"});
+    let wia_resp = serde_json::json!({"wia": "eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYifQ.eyJpYXQiOjE3MTY0MDAwMDB9.fake-signature"});
+
     let vectors = serde_json::json!({
         "generator": "r2ps-client",
         "version": "1.0",
@@ -935,9 +1013,24 @@ fn generate_rust_vectors() {
         "protocol_types": {
             "service_request": svc_req.to_string(),
             "service_response": svc_resp.to_string(),
-            "pake_request": pake_req.to_string(),
-            "pake_response": pake_resp.to_string(),
+            "tfa_request": tfa_req.to_string(),
+            "tfa_response": tfa_resp.to_string(),
             "error_response": err_resp.to_string(),
+            "request_response_pairs": [
+                {"name": "sign_ecdsa", "request": pair_req.to_string(), "response": pair_resp.to_string()}
+            ],
+            "all_error_responses": all_errors,
+            "tfa_reg_evaluate_req": tfa_reg_eval_req.to_string(),
+            "tfa_reg_evaluate_resp": tfa_reg_eval_resp.to_string(),
+            "tfa_reg_finalize_req": tfa_reg_fin_req.to_string(),
+            "tfa_reg_finalize_resp": tfa_reg_fin_resp.to_string(),
+            "tfa_auth_evaluate_req": tfa_auth_eval_req.to_string(),
+            "tfa_auth_evaluate_resp": tfa_auth_eval_resp.to_string(),
+            "tfa_auth_finalize_req": tfa_auth_fin_req.to_string(),
+            "tfa_auth_finalize_resp": tfa_auth_fin_resp.to_string(),
+            "tfa_change_evaluate_req": tfa_chg_eval_req.to_string(),
+            "tfa_change_finalize_req": tfa_chg_fin_req.to_string(),
+            "mode_constraints": mode_constraints,
         },
         "hsm_service_types": {
             "ec_keygen_request": keygen_req,
@@ -948,6 +1041,12 @@ fn generate_rust_vectors() {
             "ecdh_response_hex": ecdh_resp_hex,
             "list_keys_request": list_req,
             "list_keys_response": list_resp.to_string(),
+        },
+        "eudiw_service_types": {
+            "wka_request": wka_req.to_string(),
+            "wka_response": wka_resp.to_string(),
+            "wia_request": wia_req.to_string(),
+            "wia_response": wia_resp.to_string(),
         }
     });
 

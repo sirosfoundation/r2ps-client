@@ -1,11 +1,10 @@
-use base64ct::{Base64, Encoding};
-
 use crate::{
     client::{R2psClient, Transport},
     error::{R2psError, Result},
     pake::PakeClient,
     types::*,
 };
+use base64ct::Encoding;
 
 /// Trait matching the FIDO2 rawSign extension API.
 ///
@@ -24,7 +23,7 @@ pub trait RawSign {
     fn list_keys(&mut self, curves: &[&str]) -> Result<Vec<HsmKeyInfo>>;
 }
 
-// --- HSM service type data structures (per remote-hsm-apake-service-types.md) ---
+// --- HSM service type data structures (per r2ps-service-types.md) ---
 
 /// EC key generation request (§1).
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -84,7 +83,7 @@ pub struct HsmEcdhRequest {
 ///
 /// Uses the R2PS HSM service types to perform remote signing as a fallback
 /// for devices without FIDO2 rawSign support. Conforms to the service type
-/// definitions in `remote-hsm-apake-service-types.md`.
+/// definitions in `r2ps-service-types.md`.
 pub struct R2psRawSign<'a, T: Transport, P: PakeClient> {
     client: &'a mut R2psClient<T, P>,
 }
@@ -97,38 +96,34 @@ impl<'a, T: Transport, P: PakeClient> R2psRawSign<'a, T, P> {
     /// Perform an ECDH key agreement using a remote HSM key.
     /// Returns the raw shared secret bytes.
     pub fn ecdh(&mut self, kid: &str, peer_spki_der_b64: &str) -> Result<Vec<u8>> {
-        let req = HsmEcdhRequest {
-            kid: kid.into(),
-            public_key: peer_spki_der_b64.into(),
-        };
-        let req_json = serde_json::to_vec(&req)?;
+        let req = serde_json::json!({
+            "kid": kid,
+            "public_key": peer_spki_der_b64,
+        });
 
-        // Response is raw shared secret bytes (not JSON)
-        self.client.call_service(TYPE_HSM_ECDH, &req_json)
+        let resp = self.client.call_service(TYPE_AGREE_ECDH, &req)?;
+        // Response is base64-encoded raw shared secret
+        let secret_b64 = resp
+            .as_str()
+            .ok_or_else(|| R2psError::Protocol("ECDH response is not a string".into()))?;
+        base64ct::Base64::decode_vec(secret_b64).map_err(|e| R2psError::Base64(e.to_string()))
     }
 }
 
 impl<T: Transport, P: PakeClient> RawSign for R2psRawSign<'_, T, P> {
     fn generate_key(&mut self) -> Result<Vec<u8>> {
-        let req = HsmEcKeygenRequest {
-            curve: "P-256".into(),
-        };
-        let req_json = serde_json::to_vec(&req)?;
+        let req = serde_json::json!({ "curve": "P-256" });
 
         // Step 1: Create the key (response confirms curve only)
-        let resp_bytes = self.client.call_service(TYPE_HSM_EC_KEYGEN, &req_json)?;
-        let _resp: HsmEcKeygenResponse = serde_json::from_slice(&resp_bytes)?;
+        let _resp = self.client.call_service(TYPE_P256_GENERATE, &req)?;
 
         // Step 2: List keys to find the newly created key's kid
-        let list_req = HsmListKeysRequest {
-            curve: vec!["P-256".into()],
-        };
-        let list_json = serde_json::to_vec(&list_req)?;
-        let list_bytes = self.client.call_service(TYPE_HSM_LIST_KEYS, &list_json)?;
-        let list_resp: HsmListKeysResponse = serde_json::from_slice(&list_bytes)?;
+        let list_req = serde_json::json!({ "curve": ["P-256"] });
+        let list_resp = self.client.call_service(TYPE_HSM_LIST_KEYS, &list_req)?;
+        let list: HsmListKeysResponse = serde_json::from_value(list_resp)?;
 
         // Return the kid of the most recently created key
-        let newest = list_resp
+        let newest = list
             .key_info
             .into_iter()
             .max_by_key(|k| k.creation_time)
@@ -141,25 +136,25 @@ impl<T: Transport, P: PakeClient> RawSign for R2psRawSign<'_, T, P> {
         let kid_str = String::from_utf8(kid.to_vec())
             .map_err(|e| R2psError::Protocol(format!("invalid kid: {e}")))?;
 
-        let req = HsmEcdsaRequest {
-            kid: kid_str,
-            tbs_hash: Base64::encode_string(data),
-        };
-        let req_json = serde_json::to_vec(&req)?;
+        let req = serde_json::json!({
+            "kid": kid_str,
+            "tbs_hash": base64ct::Base64::encode_string(data),
+        });
 
-        // Response is raw DER signature bytes (not JSON)
-        self.client.call_service(TYPE_HSM_ECDSA, &req_json)
+        let resp = self.client.call_service(TYPE_SIGN_ECDSA, &req)?;
+        // Response is base64-encoded raw DER signature
+        let sig_b64 = resp
+            .as_str()
+            .ok_or_else(|| R2psError::Protocol("ECDSA response is not a string".into()))?;
+        base64ct::Base64::decode_vec(sig_b64).map_err(|e| R2psError::Base64(e.to_string()))
     }
 
     fn list_keys(&mut self, curves: &[&str]) -> Result<Vec<HsmKeyInfo>> {
-        let req = HsmListKeysRequest {
-            curve: curves.iter().map(|s| s.to_string()).collect(),
-        };
-        let req_json = serde_json::to_vec(&req)?;
+        let req = serde_json::json!({ "curve": curves });
 
-        let resp_bytes = self.client.call_service(TYPE_HSM_LIST_KEYS, &req_json)?;
-        let resp: HsmListKeysResponse = serde_json::from_slice(&resp_bytes)?;
+        let resp = self.client.call_service(TYPE_HSM_LIST_KEYS, &req)?;
+        let list: HsmListKeysResponse = serde_json::from_value(resp)?;
 
-        Ok(resp.key_info)
+        Ok(list.key_info)
     }
 }
