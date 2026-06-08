@@ -13,6 +13,7 @@ use r2ps_client::raw_sign::{
     HsmEcKeygenRequest, HsmEcKeygenResponse, HsmEcdhRequest, HsmEcdsaRequest, HsmListKeysRequest,
     HsmListKeysResponse,
 };
+use r2ps_client::{EudiwAttestationRequest, EudiwWiaResponse, EudiwWkaResponse};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -983,10 +984,24 @@ fn generate_rust_vectors() {
     });
 
     // EUDIW service types — per r2ps-service-types-eudiw.md
-    let wka_req = serde_json::json!({"keys_to_attest": ["key-0"], "ver": "draft-008"});
-    let wka_resp = serde_json::json!({"wka": "eyJ0eXAiOiJrZXktYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYifQ.eyJpYXQiOjE3MTY0MDAwMDB9.fake-signature"});
-    let wia_req = serde_json::json!({"keys_to_attest": ["key-0"], "ver": "draft-008"});
-    let wia_resp = serde_json::json!({"wia": "eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYifQ.eyJpYXQiOjE3MTY0MDAwMDB9.fake-signature"});
+    let wka_req_typed = EudiwAttestationRequest {
+        keys_to_attest: vec!["key-0".into()],
+        ver: "draft-008".into(),
+    };
+    let wka_req = serde_json::to_value(&wka_req_typed).unwrap();
+    let wka_resp_typed = EudiwWkaResponse {
+        wka: "eyJ0eXAiOiJrZXktYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYifQ.eyJpYXQiOjE3MTY0MDAwMDB9.fake-signature".into(),
+    };
+    let wka_resp = serde_json::to_value(&wka_resp_typed).unwrap();
+    let wia_req_typed = EudiwAttestationRequest {
+        keys_to_attest: vec!["key-0".into()],
+        ver: "draft-008".into(),
+    };
+    let wia_req = serde_json::to_value(&wia_req_typed).unwrap();
+    let wia_resp_typed = EudiwWiaResponse {
+        wia: "eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYifQ.eyJpYXQiOjE3MTY0MDAwMDB9.fake-signature".into(),
+    };
+    let wia_resp = serde_json::to_value(&wia_resp_typed).unwrap();
 
     let vectors = serde_json::json!({
         "generator": "r2ps-client",

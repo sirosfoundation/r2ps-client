@@ -1,5 +1,6 @@
 pub mod client;
 pub mod error;
+pub mod eudiw;
 pub mod jwe;
 pub mod jws;
 pub mod pake;
@@ -8,6 +9,11 @@ pub mod types;
 
 pub use client::{R2psClient, Transport};
 pub use error::{R2psError, Result};
+pub use eudiw::{
+    CnfClaim, EudiwAttestationRequest, EudiwRevokeRequest, EudiwRevokeResponse,
+    EudiwSuspendRequest, EudiwSuspendResponse, EudiwWiaResponse, EudiwWkaResponse, StatusListRef,
+    StatusListStatus, StatusObject, WiaPayload, WkaPayload,
+};
 pub use pake::PakeClient;
 pub use raw_sign::{
     HsmEcKeygenRequest, HsmEcKeygenResponse, HsmEcdhRequest, HsmEcdsaRequest, HsmKeyInfo,

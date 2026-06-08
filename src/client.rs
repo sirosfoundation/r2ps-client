@@ -182,6 +182,46 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
         Ok(data)
     }
 
+    /// Send a 1FA service request (no 2FA session required).
+    /// Used for EUDIW attestation types (WKA/WIA) and key generation.
+    pub fn call_service_1fa(
+        &self,
+        service_type: &str,
+        req_data: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
+        let data_raw = RawValue::from_string(serde_json::to_string(req_data)?)
+            .map_err(|e| R2psError::Protocol(format!("invalid data JSON: {e}")))?;
+
+        let svc_req = ServiceRequest {
+            ver: PROTOCOL_VERSION.into(),
+            nonce: Base64UrlUnpadded::encode_string(&random_bytes_vec(16)),
+            iat: now_unix(),
+            data: data_raw,
+            client_id: self.client_id.clone(),
+            context: self.context.clone(),
+            service_type: service_type.into(),
+            tfa_session_id: None,
+        };
+
+        let req_json = serde_json::to_vec(&svc_req)?;
+        let signing_key = SigningKey::from(&self.client_key);
+        let kid = self.client_id.as_str();
+        let signed = jws::sign_jws(&req_json, &signing_key, Some(kid), Some(TYP_REQUEST))?;
+
+        let resp_body = self.transport.send(signed.as_bytes())?;
+
+        let verifying_key = p256::ecdsa::VerifyingKey::from(&self.server_pub);
+        let resp_payload = jws::verify_jws(
+            std::str::from_utf8(&resp_body)
+                .map_err(|e| R2psError::Protocol(format!("response not UTF-8: {e}")))?,
+            &verifying_key,
+        )?;
+
+        let svc_resp: ServiceResponse = serde_json::from_slice(&resp_payload)?;
+        let data: serde_json::Value = serde_json::from_str(svc_resp.data.get())?;
+        Ok(data)
+    }
+
     /// Returns the current session ID, if authenticated.
     pub fn session_id(&self) -> Option<&str> {
         self.session_id.as_deref()

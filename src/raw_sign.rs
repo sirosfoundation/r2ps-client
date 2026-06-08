@@ -114,8 +114,8 @@ impl<T: Transport, P: PakeClient> RawSign for R2psRawSign<'_, T, P> {
     fn generate_key(&mut self) -> Result<Vec<u8>> {
         let req = serde_json::json!({ "curve": "P-256" });
 
-        // Step 1: Create the key (response confirms curve only)
-        let _resp = self.client.call_service(TYPE_P256_GENERATE, &req)?;
+        // Step 1: Create the key (1FA — no session required)
+        let _resp = self.client.call_service_1fa(TYPE_P256_GENERATE, &req)?;
 
         // Step 2: List keys to find the newly created key's kid
         let list_req = serde_json::json!({ "curve": ["P-256"] });

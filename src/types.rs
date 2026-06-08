@@ -93,6 +93,8 @@ pub const TYPE_HSM_LIST_KEYS: &str = "hsm_list_keys";
 // EUDIW service types
 pub const TYPE_EUDIW_WKA_ETSI: &str = "eudiw_wka_etsi";
 pub const TYPE_EUDIW_WIA_ETSI: &str = "eudiw_wia_etsi";
+pub const TYPE_EUDIW_WI_REVOKE: &str = "eudiw_wi_revoke";
+pub const TYPE_EUDIW_WI_SUSPEND: &str = "eudiw_wi_suspend";
 
 // JWS typ header values
 pub const TYP_REQUEST: &str = "r2ps-request+jwt";
