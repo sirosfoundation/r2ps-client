@@ -21,16 +21,16 @@ cli = ["dep:clap", "dep:ureq", "dep:rpassword", "dep:hex"]
 [dependencies]
 p256 = { version = "0.13", features = ["ecdsa", "ecdh", "pkcs8", "pem"] }
 josekit = "0.10"
-rand = "0.8"
+rand = "0.10"
 base64ct = { version = "1", features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
-thiserror = "1"
+thiserror = "2"
 zeroize = { version = "1", features = ["derive"] }
 
 # CLI-only dependencies
 clap = { version = "4", features = ["derive", "env"], optional = true }
-ureq = { version = "2", optional = true }
+ureq = { version = "3", optional = true }
 rpassword = { version = "7", optional = true }
 hex = { version = "0.4", optional = true }
 
