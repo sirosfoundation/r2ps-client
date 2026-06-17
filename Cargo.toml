@@ -27,6 +27,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "1"
 zeroize = { version = "1", features = ["derive"] }
+hkdf = "0.12"
+sha2 = "0.10"
 
 # CLI-only dependencies
 clap = { version = "4", features = ["derive", "env"], optional = true }
