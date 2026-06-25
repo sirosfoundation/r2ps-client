@@ -2,34 +2,34 @@
   "generator": "r2ps-client",
   "version": "1.0",
   "keys": {
-    "ec_private_pkcs8_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgKl+qXT3191yiX+Ex\ndkS2SL++bKdsF7wUr4mEH1tHNmehRANCAAT6tTMFVRCtf56QwVzzx3Q6ZiN7AdpS\nP5pRIzz1IYivznZX3WOVKR0ifptCN5Z5nbFVurRQxZbFSVeOqzPWrS8e\n-----END PRIVATE KEY-----\n",
-    "ec_public_spki_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+rUzBVUQrX+ekMFc88d0OmYjewHa\nUj+aUSM89SGIr852V91jlSkdIn6bQjeWeZ2xVbq0UMWWxUlXjqsz1q0vHg==\n-----END PUBLIC KEY-----\n",
-    "symmetric_key_hex": "d5c0d5537c778107b0274860d7f04ccb707e7d180bae886683782770b0231d48"
+    "ec_private_pkcs8_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg8wVB7beWayLh0qCe\nNgbsmrOuXXt02DTqE8hWwJ+N8M2hRANCAAQQqc8LKk8UqHZqHOvJ1VXQzwYV49as\nxvbTMYz6OJ7sh98YxTgGoDzETeNb/aORPH4pCUlQY0jFGR4LaU6kYYJ+\n-----END PRIVATE KEY-----\n",
+    "ec_public_spki_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEKnPCypPFKh2ahzrydVV0M8GFePW\nrMb20zGM+jie7IffGMU4BqA8xE3jW/2jkTx+KQlJUGNIxRkeC2lOpGGCfg==\n-----END PUBLIC KEY-----\n",
+    "symmetric_key_hex": "e12ffed571ec4c41d6aedd1df777420d117394cbf1c506baf922b20572f71e95"
   },
   "jws": {
-    "compact": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImNvbmZvcm1hbmNlLWtpZC0xIiwidHlwIjoicjJwcy1yZXF1ZXN0K2p3dCJ9.aGVsbG8gaW50ZXJvcA.EQTJxV5ed57j3cPQ8hz1mbN7TmkMp5wQoStmWwMxctk0ieksV3o_1PFw1deESnU-3f_A2LUGHXt2YmYjzLfMBw",
+    "compact": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImNvbmZvcm1hbmNlLWtpZC0xIiwidHlwIjoicjJwcy1yZXF1ZXN0K2p3dCJ9.aGVsbG8gaW50ZXJvcA.wB5OR2_KardOR6BcqzD39mdAfUnJhybhuD8QoRhpSmwvMcVRv6rE3wUXhCDe_IN1TKOOYvccFjbylo6WCuM4PQ",
     "payload_hex": "68656c6c6f20696e7465726f70",
     "kid": "conformance-kid-1",
     "typ": "r2ps-request+jwt"
   },
   "jwe_ecdh": {
-    "compact": "eyJhbGciOiJFQ0RILUVTK0EyNTZLVyIsImVuYyI6IkEyNTZHQ00iLCJjdHkiOiJhcHBsaWNhdGlvbi9vY3RldC1zdHJlYW0iLCJlcGsiOnsia3R5IjoiRUMiLCJjcnYiOiJQLTI1NiIsIngiOiJDZDAtUkdMMWg5WER1ak5RbnozQ0Y5N1BvNmhtLUt0Wkt1VnhOOVdQMEJNIiwieSI6ImJZT3gxOFhFd0pwWnFTSTkzekIzT1cyR1FYbDU3RjlKMDB3ajdTZWE0cnMifX0.NuWeGWoCUL6lsHfqGmJHbAmoRPz_bR7vfZOGOo1lQz1SmRaMpkNDrA.w4UlLdagGN9Ldj4P.fKiyhlS7NMtkCgTDt8Dl_oJQbw.wKxikGtoOOO8VfmxJK_3iA",
+    "compact": "eyJhbGciOiJFQ0RILUVTK0EyNTZLVyIsImVuYyI6IkEyNTZHQ00iLCJjdHkiOiJhcHBsaWNhdGlvbi9vY3RldC1zdHJlYW0iLCJlcGsiOnsia3R5IjoiRUMiLCJjcnYiOiJQLTI1NiIsIngiOiJybllfYlVEcnJyV29fd0R3VnpSZURRbGNqOFRwdVcyLUVJUzk0cnpnNG1ZIiwieSI6ImFIY2Ffak9JOTRzRE1wQ0k3b3dvNjhGSGtFbHIzNGR5S0hNSXRZQVJZTGMifX0.0qM1q7hRN8B6TAgkoS4aY0_piFIoyfxnZIC_eExW8J7APg_kq0FGSA.HcLkk84grtYGJcpY.VFBk8gAQlOwDXQ_DWtatK82Wcw.NlwEhDWA21LHKICUQ_XH-Q",
     "plaintext_hex": "6563646820736563726574207061796c6f6164"
   },
   "jwe_symmetric": {
-    "compact": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwiY3R5IjoiYXBwbGljYXRpb24vb2N0ZXQtc3RyZWFtIn0..ISBAifvt63rv6_cj.kG66vbMZuD_Ws5sAjD7Fnf05Zfq2z0V6.wjLaAna5hbtmRwa22Bj12g",
+    "compact": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwiY3R5IjoiYXBwbGljYXRpb24vb2N0ZXQtc3RyZWFtIn0..Cdih-jnsDt047JAq.DxPmsrwbK2bxIuzFdfsVLuXa_1DR6MhD.vvRpn_kxNj8NdigHRCQvcQ",
     "plaintext_hex": "73796d6d657472696320736563726574207061796c6f6164"
   },
   "protocol_types": {
-    "service_request": "{\"ver\":\"1.0\",\"nonce\":\"dGVzdG5vbmNl\",\"iat\":1716400000,\"data\":{\"kid\":\"key-0\",\"tbs_hash\":\"YUHJYg==\"},\"client_id\":\"test-client\",\"context\":\"hsm\",\"type\":\"sign_ecdsa\",\"2fa_session_id\":\"session-abc\"}",
+    "service_request": "{\"ver\":\"1.0\",\"nonce\":\"dGVzdG5vbmNl\",\"iat\":1716400000,\"data\":{\"kid\":\"key-0\",\"tbs_hash\":\"YUHJYg==\"},\"client_id\":\"test-client\",\"context\":\"hsm\",\"type\":\"sign_ecdsa\",\"session_id\":\"session-abc\",\"2fa_session_id\":\"session-abc\"}",
     "service_response": "{\"ver\":\"1.0\",\"nonce\":\"cmVzcG5vbmNl\",\"iat\":1716400001,\"data\":{\"signature\":\"MEQCIG...\"}}",
-    "tfa_request": "{\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"request\":\"b3BhcXVlLXJlcXVlc3Q\"}",
-    "tfa_response": "{\"response\":\"b3BhcXVlLXJlc3BvbnNl\"}",
+    "tfa_request": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"p_data\":\"b3BhcXVlLXJlcXVlc3Q\",\"request\":\"b3BhcXVlLXJlcXVlc3Q\"}",
+    "tfa_response": "{\"p_data\":\"b3BhcXVlLXJlc3BvbnNl\",\"response\":\"b3BhcXVlLXJlc3BvbnNl\"}",
     "error_response": "{\"error_code\":\"UNAUTHORIZED\",\"error_message\":\"invalid credentials\"}",
     "request_response_pairs": [
       {
         "name": "sign_ecdsa",
-        "request": "{\"ver\":\"1.0\",\"nonce\":\"Y29uZm9ybWFuY2Vub25jZQ\",\"iat\":1716400000,\"data\":{\"kid\":\"key-0\",\"tbs_hash\":\"YUHJYg==\"},\"client_id\":\"test-client\",\"context\":\"hsm\",\"type\":\"sign_ecdsa\",\"2fa_session_id\":\"session-abc\"}",
+        "request": "{\"ver\":\"1.0\",\"nonce\":\"Y29uZm9ybWFuY2Vub25jZQ\",\"iat\":1716400000,\"data\":{\"kid\":\"key-0\",\"tbs_hash\":\"YUHJYg==\"},\"client_id\":\"test-client\",\"context\":\"hsm\",\"type\":\"sign_ecdsa\",\"session_id\":\"session-abc\",\"2fa_session_id\":\"session-abc\"}",
         "response": "{\"ver\":\"1.0\",\"nonce\":\"Y29uZm9ybWFuY2Vub25jZQ\",\"iat\":1716400001,\"data\":{\"signature\":\"MEQCIG...\"}}"
       }
     ],
@@ -63,16 +63,16 @@
         "json": "{\"error_code\":\"TRY_LATER\",\"error_message\":\"service busy\"}"
       }
     ],
-    "tfa_reg_evaluate_req": "{\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"request\":\"cmVnaXN0cmF0aW9uLXJlcXVlc3Q\"}",
-    "tfa_reg_evaluate_resp": "{\"response\":\"cmVnaXN0cmF0aW9uLXJlc3BvbnNl\"}",
-    "tfa_reg_finalize_req": "{\"2fa_mode\":\"opaque\",\"state\":\"finalize\",\"request\":\"cmVnaXN0cmF0aW9uLXJlY29yZA\",\"authorization\":\"YXV0aG9yaXphdGlvbi1kYXRh\"}",
+    "tfa_reg_evaluate_req": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"p_data\":\"cmVnaXN0cmF0aW9uLXJlcXVlc3Q\",\"request\":\"cmVnaXN0cmF0aW9uLXJlcXVlc3Q\"}",
+    "tfa_reg_evaluate_resp": "{\"p_data\":\"cmVnaXN0cmF0aW9uLXJlc3BvbnNl\",\"response\":\"cmVnaXN0cmF0aW9uLXJlc3BvbnNl\"}",
+    "tfa_reg_finalize_req": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"finalize\",\"p_data\":\"cmVnaXN0cmF0aW9uLXJlY29yZA\",\"request\":\"cmVnaXN0cmF0aW9uLXJlY29yZA\",\"authorization\":\"YXV0aG9yaXphdGlvbi1kYXRh\"}",
     "tfa_reg_finalize_resp": "{\"message\":\"success\"}",
-    "tfa_auth_evaluate_req": "{\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"request\":\"S0UxLWJ5dGVz\"}",
-    "tfa_auth_evaluate_resp": "{\"2fa_session_id\":\"auth-session-001\",\"response\":\"S0UyLWJ5dGVz\"}",
-    "tfa_auth_finalize_req": "{\"2fa_mode\":\"opaque\",\"state\":\"finalize\",\"request\":\"S0UzLWJ5dGVz\"}",
-    "tfa_auth_finalize_resp": "{\"2fa_session_id\":\"auth-session-001\",\"message\":\"authenticated\",\"session_expiration_time\":1716403600}",
-    "tfa_change_evaluate_req": "{\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"request\":\"bmV3LXJlZ2lzdHJhdGlvbi1yZXF1ZXN0\"}",
-    "tfa_change_finalize_req": "{\"2fa_mode\":\"opaque\",\"state\":\"finalize\",\"request\":\"bmV3LXJlZ2lzdHJhdGlvbi1yZWNvcmQ\"}",
+    "tfa_auth_evaluate_req": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"p_data\":\"S0UxLWJ5dGVz\",\"request\":\"S0UxLWJ5dGVz\"}",
+    "tfa_auth_evaluate_resp": "{\"session_id\":\"auth-session-001\",\"2fa_session_id\":\"auth-session-001\",\"p_data\":\"S0UyLWJ5dGVz\",\"response\":\"S0UyLWJ5dGVz\"}",
+    "tfa_auth_finalize_req": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"finalize\",\"p_data\":\"S0UzLWJ5dGVz\",\"request\":\"S0UzLWJ5dGVz\"}",
+    "tfa_auth_finalize_resp": "{\"session_id\":\"auth-session-001\",\"2fa_session_id\":\"auth-session-001\",\"message\":\"authenticated\",\"session_expiration_time\":1716403600}",
+    "tfa_change_evaluate_req": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"evaluate\",\"p_data\":\"bmV3LXJlZ2lzdHJhdGlvbi1yZXF1ZXN0\",\"request\":\"bmV3LXJlZ2lzdHJhdGlvbi1yZXF1ZXN0\"}",
+    "tfa_change_finalize_req": "{\"protocol\":\"opaque\",\"2fa_mode\":\"opaque\",\"state\":\"finalize\",\"p_data\":\"bmV3LXJlZ2lzdHJhdGlvbi1yZWNvcmQ\",\"request\":\"bmV3LXJlZ2lzdHJhdGlvbi1yZWNvcmQ\"}",
     "mode_constraints": [
       {
         "type": "2fa_registration",

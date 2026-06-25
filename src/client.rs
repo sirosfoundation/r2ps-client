@@ -63,29 +63,36 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
         let reg_req = self.pake.registration_init(password)?;
 
         let tfa_req = TFARequestData {
-            tfa_mode: TFA_MODE_OPAQUE.into(),
+            protocol: TFA_MODE_OPAQUE.into(),
+            tfa_mode: String::new(),
             state: STATE_EVALUATE.into(),
             authorization: None,
-            request: Base64UrlUnpadded::encode_string(&reg_req),
+            p_data: Base64UrlUnpadded::encode_string(&reg_req),
+            request: String::new(),
+            authorization_type: None,
+            session_duration: None,
         };
 
         let resp = self.send_2fa(TYPE_2FA_REGISTRATION, None, &tfa_req)?;
 
         // Phase 2: RegistrationFinalize
         let resp_bytes = Base64UrlUnpadded::decode_vec(
-            resp.response
-                .as_deref()
-                .ok_or_else(|| R2psError::Protocol("missing response in 2FA response".into()))?,
+            resp.get_p_data()
+                .ok_or_else(|| R2psError::Protocol("missing p_data in 2FA response".into()))?,
         )
         .map_err(|e| R2psError::Base64(e.to_string()))?;
 
         let record = self.pake.registration_finalize(&resp_bytes)?;
 
         let tfa_req_fin = TFARequestData {
-            tfa_mode: TFA_MODE_OPAQUE.into(),
+            protocol: TFA_MODE_OPAQUE.into(),
+            tfa_mode: String::new(),
             state: STATE_FINALIZE.into(),
             authorization: None,
-            request: Base64UrlUnpadded::encode_string(&record),
+            p_data: Base64UrlUnpadded::encode_string(&record),
+            request: String::new(),
+            authorization_type: None,
+            session_duration: None,
         };
 
         self.send_2fa(TYPE_2FA_REGISTRATION, None, &tfa_req_fin)?;
@@ -99,35 +106,41 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
         let ke1 = self.pake.auth_init(password)?;
 
         let tfa_req = TFARequestData {
-            tfa_mode: TFA_MODE_OPAQUE.into(),
+            protocol: TFA_MODE_OPAQUE.into(),
+            tfa_mode: String::new(),
             state: STATE_EVALUATE.into(),
             authorization: None,
-            request: Base64UrlUnpadded::encode_string(&ke1),
+            p_data: Base64UrlUnpadded::encode_string(&ke1),
+            request: String::new(),
+            authorization_type: None,
+            session_duration: None,
         };
 
         let resp = self.send_2fa_auth(TYPE_2FA_AUTHENTICATE, None, &tfa_req)?;
 
         let session_id = resp
-            .tfa_session_id
-            .as_ref()
-            .ok_or_else(|| R2psError::Protocol("missing 2fa_session_id".into()))?
-            .clone();
+            .get_session_id()
+            .ok_or_else(|| R2psError::Protocol("missing session_id".into()))?
+            .to_string();
 
         // Phase 2: KE3
         let ke2_bytes = Base64UrlUnpadded::decode_vec(
-            resp.response
-                .as_deref()
-                .ok_or_else(|| R2psError::Protocol("missing response".into()))?,
+            resp.get_p_data()
+                .ok_or_else(|| R2psError::Protocol("missing p_data".into()))?,
         )
         .map_err(|e| R2psError::Base64(e.to_string()))?;
 
         let (ke3, session_key) = self.pake.auth_finalize(&ke2_bytes)?;
 
         let tfa_req_fin = TFARequestData {
-            tfa_mode: TFA_MODE_OPAQUE.into(),
+            protocol: TFA_MODE_OPAQUE.into(),
+            tfa_mode: String::new(),
             state: STATE_FINALIZE.into(),
             authorization: None,
-            request: Base64UrlUnpadded::encode_string(&ke3),
+            p_data: Base64UrlUnpadded::encode_string(&ke3),
+            request: String::new(),
+            authorization_type: None,
+            session_duration: None,
         };
 
         self.send_2fa_auth(TYPE_2FA_AUTHENTICATE, Some(&session_id), &tfa_req_fin)?;
@@ -145,7 +158,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
     pub fn register_fido2(&self, ceremony: &dyn Fido2Ceremony, rp_id: &str) -> Result<()> {
         // Phase 1: Request challenge
         let challenge_req = Fido2TfaRequestData {
-            tfa_mode: TFA_MODE_FIDO2.into(),
+            protocol: TFA_MODE_FIDO2.into(),
             state: STATE_CHALLENGE.into(),
             request: serde_json::json!({}),
             authorization: None,
@@ -160,7 +173,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
 
         // Phase 3: Send registration to server
         let register_req = Fido2TfaRequestData {
-            tfa_mode: TFA_MODE_FIDO2.into(),
+            protocol: TFA_MODE_FIDO2.into(),
             state: STATE_REGISTER.into(),
             request: serde_json::to_value(&fido2::Fido2RegisterRequest {
                 credential_id: reg_result.credential_id,
@@ -192,7 +205,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
     ) -> Result<()> {
         // Phase 1: Request challenge
         let challenge_req = Fido2TfaRequestData {
-            tfa_mode: TFA_MODE_FIDO2.into(),
+            protocol: TFA_MODE_FIDO2.into(),
             state: STATE_CHALLENGE.into(),
             request: serde_json::json!({}),
             authorization: None,
@@ -217,7 +230,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
         };
 
         let finalize_req = Fido2TfaRequestData {
-            tfa_mode: TFA_MODE_FIDO2.into(),
+            protocol: TFA_MODE_FIDO2.into(),
             state: STATE_FINALIZE.into(),
             request: serde_json::to_value(&finalize_req_data)?,
             authorization: None,
@@ -245,7 +258,11 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
             task,
         )?;
 
-        self.session_id = Some(finalize_resp.tfa_session_id);
+        let fido2_session_id = finalize_resp
+            .session_id
+            .or(finalize_resp.tfa_session_id)
+            .ok_or_else(|| R2psError::Protocol("missing session_id in FIDO2 response".into()))?;
+        self.session_id = Some(fido2_session_id);
         self.session_key = Some(session_key);
         Ok(())
     }
@@ -318,6 +335,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
             context: self.context.clone(),
             service_type: service_type.into(),
             tfa_session_id: Some(session_id.clone()),
+            jwe_hash: None,
         };
 
         let req_json = serde_json::to_vec(&svc_req)?;
@@ -361,6 +379,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
             context: self.context.clone(),
             service_type: service_type.into(),
             tfa_session_id: None,
+            jwe_hash: None,
         };
 
         let req_json = serde_json::to_vec(&svc_req)?;
@@ -455,6 +474,7 @@ impl<T: Transport, P: PakeClient> R2psClient<T, P> {
             context: self.context.clone(),
             service_type: req_type.into(),
             tfa_session_id: session_id.map(String::from),
+            jwe_hash: None,
         };
 
         let req_json = serde_json::to_vec(&svc_req)?;
