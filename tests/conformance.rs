@@ -297,7 +297,7 @@ fn protocol_service_response_no_request_fields() {
             serde_json::from_str(&v.protocol_types.service_response).unwrap();
         let obj = raw.as_object().unwrap();
         // Response MUST NOT contain request-only fields
-        for field in &["client_id", "context", "type", "2fa_session_id"] {
+        for field in &["client_id", "context", "type"] {
             assert!(
                 !obj.contains_key(*field),
                 "[{name}] service_response MUST NOT contain '{field}'"
@@ -516,7 +516,7 @@ fn response_forbidden_fields() {
             for pair in pairs {
                 let resp: serde_json::Value = serde_json::from_str(&pair.response).unwrap();
                 let obj = resp.as_object().unwrap();
-                for field in &["client_id", "context", "type", "2fa_session_id"] {
+                for field in &["client_id", "context", "type"] {
                     assert!(
                         !obj.contains_key(*field),
                         "[{name}/{}] response contains request-only field '{}'",
@@ -568,10 +568,14 @@ fn tfa_registration_flow() {
     for (name, v) in vector_files() {
         if let Some(ref req_json) = v.protocol_types.tfa_reg_evaluate_req {
             let req: serde_json::Value = serde_json::from_str(req_json).unwrap();
-            assert_eq!(req["2fa_mode"], "opaque", "[{name}] reg evaluate 2fa_mode");
+            let mode = req.get("protocol").or_else(|| req.get("2fa_mode")).unwrap();
+            assert_eq!(mode, "opaque", "[{name}] reg evaluate protocol");
             assert_eq!(req["state"], "evaluate", "[{name}] reg evaluate state");
             assert!(
-                req["request"].as_str().map_or(false, |s| !s.is_empty()),
+                req.get("p_data")
+                    .or_else(|| req.get("request"))
+                    .and_then(|v| v.as_str())
+                    .map_or(false, |s| !s.is_empty()),
                 "[{name}] request empty"
             );
         }
@@ -600,17 +604,22 @@ fn tfa_authentication_flow() {
     for (name, v) in vector_files() {
         if let Some(ref resp_json) = v.protocol_types.tfa_auth_evaluate_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
+            let sid = resp
+                .get("session_id")
+                .or_else(|| resp.get("2fa_session_id"));
             assert!(
-                resp["2fa_session_id"]
-                    .as_str()
+                sid.and_then(|v| v.as_str())
                     .map_or(false, |s| !s.is_empty()),
-                "[{name}] auth evaluate 2fa_session_id must be present"
+                "[{name}] auth evaluate session_id must be present"
             );
         }
         if let Some(ref resp_json) = v.protocol_types.tfa_auth_finalize_resp {
             let resp: serde_json::Value = serde_json::from_str(resp_json).unwrap();
-            assert!(resp["2fa_session_id"]
-                .as_str()
+            let sid = resp
+                .get("session_id")
+                .or_else(|| resp.get("2fa_session_id"));
+            assert!(sid
+                .and_then(|v| v.as_str())
                 .map_or(false, |s| !s.is_empty()));
             assert!(resp["session_expiration_time"]
                 .as_i64()
@@ -839,6 +848,7 @@ fn generate_rust_vectors() {
         "client_id": "test-client",
         "context": "hsm",
         "type": "sign_ecdsa",
+        "session_id": "session-abc",
         "2fa_session_id": "session-abc"
     });
     let svc_resp = serde_json::json!({
@@ -848,11 +858,14 @@ fn generate_rust_vectors() {
         "data": {"signature": "MEQCIG..."}
     });
     let tfa_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "evaluate",
+        "p_data": "b3BhcXVlLXJlcXVlc3Q",
         "request": "b3BhcXVlLXJlcXVlc3Q"
     });
     let tfa_resp = serde_json::json!({
+        "p_data": "b3BhcXVlLXJlc3BvbnNl",
         "response": "b3BhcXVlLXJlc3BvbnNl"
     });
     let err_resp = serde_json::json!({
@@ -862,16 +875,21 @@ fn generate_rust_vectors() {
 
     // 2FA registration flow
     let tfa_reg_eval_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "evaluate",
+        "p_data": "cmVnaXN0cmF0aW9uLXJlcXVlc3Q",
         "request": "cmVnaXN0cmF0aW9uLXJlcXVlc3Q"
     });
     let tfa_reg_eval_resp = serde_json::json!({
+        "p_data": "cmVnaXN0cmF0aW9uLXJlc3BvbnNl",
         "response": "cmVnaXN0cmF0aW9uLXJlc3BvbnNl"
     });
     let tfa_reg_fin_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "finalize",
+        "p_data": "cmVnaXN0cmF0aW9uLXJlY29yZA",
         "request": "cmVnaXN0cmF0aW9uLXJlY29yZA",
         "authorization": "YXV0aG9yaXphdGlvbi1kYXRh"
     });
@@ -881,20 +899,27 @@ fn generate_rust_vectors() {
 
     // 2FA auth flow
     let tfa_auth_eval_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "evaluate",
+        "p_data": "S0UxLWJ5dGVz",
         "request": "S0UxLWJ5dGVz"
     });
     let tfa_auth_eval_resp = serde_json::json!({
+        "session_id": "auth-session-001",
         "2fa_session_id": "auth-session-001",
+        "p_data": "S0UyLWJ5dGVz",
         "response": "S0UyLWJ5dGVz"
     });
     let tfa_auth_fin_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "finalize",
+        "p_data": "S0UzLWJ5dGVz",
         "request": "S0UzLWJ5dGVz"
     });
     let tfa_auth_fin_resp = serde_json::json!({
+        "session_id": "auth-session-001",
         "2fa_session_id": "auth-session-001",
         "message": "authenticated",
         "session_expiration_time": 1716403600
@@ -902,13 +927,17 @@ fn generate_rust_vectors() {
 
     // 2FA change flow
     let tfa_chg_eval_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "evaluate",
+        "p_data": "bmV3LXJlZ2lzdHJhdGlvbi1yZXF1ZXN0",
         "request": "bmV3LXJlZ2lzdHJhdGlvbi1yZXF1ZXN0"
     });
     let tfa_chg_fin_req = serde_json::json!({
+        "protocol": "opaque",
         "2fa_mode": "opaque",
         "state": "finalize",
+        "p_data": "bmV3LXJlZ2lzdHJhdGlvbi1yZWNvcmQ",
         "request": "bmV3LXJlZ2lzdHJhdGlvbi1yZWNvcmQ"
     });
 
@@ -933,6 +962,7 @@ fn generate_rust_vectors() {
         "client_id": "test-client",
         "context": "hsm",
         "type": "sign_ecdsa",
+        "session_id": "session-abc",
         "2fa_session_id": "session-abc"
     });
     let pair_resp = serde_json::json!({

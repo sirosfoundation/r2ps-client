@@ -88,8 +88,12 @@ pub struct Fido2ChallengeResponse {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Fido2FinalizeResponse {
     pub server_epub: String,
-    #[serde(rename = "2fa_session_id")]
-    pub tfa_session_id: String,
+    /// I-D field name.
+    #[serde(default)]
+    pub session_id: Option<String>,
+    /// Legacy field name.
+    #[serde(rename = "2fa_session_id", default)]
+    pub tfa_session_id: Option<String>,
     pub task: String,
     pub session_expiration_time: i64,
 }
@@ -115,8 +119,7 @@ pub struct Fido2FinalizeRequest {
 /// Used when request is a JSON object rather than base64-encoded bytes.
 #[derive(Debug, Clone, Serialize)]
 pub struct Fido2TfaRequestData {
-    #[serde(rename = "2fa_mode")]
-    pub tfa_mode: String,
+    pub protocol: String,
     pub state: String,
     pub request: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
