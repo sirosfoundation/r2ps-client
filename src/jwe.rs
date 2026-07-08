@@ -69,12 +69,12 @@ pub fn decrypt_jwe_symmetric(compact: &str, key: &[u8; 32]) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::elliptic_curve::Generate;
     use p256::SecretKey;
-    use rand::rngs::OsRng;
 
     #[test]
     fn jwe_ecdh_roundtrip() {
-        let sk = SecretKey::random(&mut OsRng);
+        let sk = SecretKey::generate();
         let pk = sk.public_key();
         let plaintext = b"secret payload";
 
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn jwe_symmetric_roundtrip() {
         let mut key = [0u8; 32];
-        rand::RngCore::fill_bytes(&mut OsRng, &mut key);
+        rand::fill(&mut key);
         let plaintext = b"symmetric secret";
 
         let jwe = encrypt_jwe_symmetric(plaintext, &key).unwrap();
@@ -96,9 +96,9 @@ mod tests {
 
     #[test]
     fn jwe_wrong_key_fails() {
-        let sk = SecretKey::random(&mut OsRng);
+        let sk = SecretKey::generate();
         let pk = sk.public_key();
-        let other = SecretKey::random(&mut OsRng);
+        let other = SecretKey::generate();
 
         let jwe = encrypt_jwe(b"test", &pk).unwrap();
         assert!(decrypt_jwe(&jwe, &other).is_err());

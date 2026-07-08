@@ -7,7 +7,7 @@
 //! to external code via the [`Fido2Ceremony`] trait.
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use p256::{ecdh::EphemeralSecret, PublicKey};
+use p256::{ecdh::EphemeralSecret, elliptic_curve::Generate, PublicKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
@@ -195,7 +195,7 @@ mod hex {
 /// Generate an ephemeral P-256 key pair for session establishment.
 /// Returns (private_key_for_ecdh, uncompressed_public_key_bytes).
 pub fn generate_ephemeral_keypair() -> Result<(EphemeralSecret, Vec<u8>)> {
-    let secret = EphemeralSecret::random(&mut rand::rngs::OsRng);
+    let secret = EphemeralSecret::generate();
     let public_key = secret.public_key();
     let pub_bytes = public_key.to_sec1_bytes().to_vec();
     Ok((secret, pub_bytes))

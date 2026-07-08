@@ -78,11 +78,11 @@ pub fn peek_jws_headers(compact: &str) -> Result<JwsHeaders> {
 mod tests {
     use super::*;
     use p256::ecdsa::SigningKey;
-    use rand::rngs::OsRng;
+    use p256::elliptic_curve::Generate;
 
     #[test]
     fn sign_verify_roundtrip() {
-        let key = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
         let vk = VerifyingKey::from(&key);
         let payload = b"hello world";
 
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn peek_headers() {
-        let key = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
         let jws = sign_jws(b"{}", &key, Some("my-kid"), Some("r2ps-request+jwt")).unwrap();
         let headers = peek_jws_headers(&jws).unwrap();
         assert_eq!(headers.kid.as_deref(), Some("my-kid"));
@@ -102,8 +102,8 @@ mod tests {
 
     #[test]
     fn verify_wrong_key_fails() {
-        let key = SigningKey::random(&mut OsRng);
-        let other = SigningKey::random(&mut OsRng);
+        let key = SigningKey::generate();
+        let other = SigningKey::generate();
         let other_vk = VerifyingKey::from(&other);
 
         let jws = sign_jws(b"test", &key, None, None).unwrap();
