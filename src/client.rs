@@ -2,7 +2,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use p256::{ecdsa::SigningKey, PublicKey, SecretKey};
-use rand::RngCore;
 use serde_json::value::RawValue;
 use zeroize::Zeroizing;
 
@@ -508,6 +507,6 @@ fn now_unix() -> i64 {
 
 fn random_bytes_vec(n: usize) -> Vec<u8> {
     let mut buf = vec![0u8; n];
-    rand::rngs::OsRng.fill_bytes(&mut buf);
+    rand::fill(&mut buf[..]);
     buf
 }

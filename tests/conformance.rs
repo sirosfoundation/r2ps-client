@@ -807,9 +807,9 @@ fn eudiw_version_identifier() {
 #[test]
 fn generate_rust_vectors() {
     use p256::ecdsa::SigningKey;
-    use rand::rngs::OsRng;
+    use p256::elliptic_curve::Generate;
 
-    let secret_key = SecretKey::random(&mut OsRng);
+    let secret_key = SecretKey::generate();
     let public_key = secret_key.public_key();
     let signing_key = SigningKey::from(&secret_key);
     let _verifying_key = VerifyingKey::from(&signing_key);
