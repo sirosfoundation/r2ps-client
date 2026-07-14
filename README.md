@@ -1,6 +1,7 @@
 # r2ps-client
 
 [![CI](https://github.com/sirosfoundation/r2ps-client/actions/workflows/ci.yml/badge.svg)](https://github.com/sirosfoundation/r2ps-client/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sirosfoundation/r2ps-client/badge)](https://scorecard.dev/viewer/?uri=github.com/sirosfoundation/r2ps-client)
 [![License: BSD-2-Clause](https://img.shields.io/badge/License-BSD--2--Clause-blue.svg)](LICENSE)
 
 Rust client library for the R2PS (Remote PAKE-Protected Services) protocol — a
