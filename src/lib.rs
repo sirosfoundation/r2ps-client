@@ -4,6 +4,7 @@ pub mod eudiw;
 pub mod fido2;
 pub mod jwe;
 pub mod jws;
+pub mod opaque_pake;
 pub mod pake;
 pub mod raw_sign;
 pub mod types;
@@ -19,6 +20,7 @@ pub use fido2::{
     AssertionResult, Fido2Ceremony, Fido2ChallengeResponse, Fido2FinalizeResponse,
     RegistrationResult,
 };
+pub use opaque_pake::OpaqueClient;
 pub use pake::PakeClient;
 pub use raw_sign::{
     HsmEcKeygenRequest, HsmEcKeygenResponse, HsmEcdhRequest, HsmEcdsaRequest, HsmKeyInfo,
