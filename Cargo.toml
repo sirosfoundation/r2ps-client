@@ -36,5 +36,19 @@ ureq = { version = "2", optional = true }
 rpassword = { version = "7", optional = true }
 hex = { version = "0.4", optional = true }
 
+# Real OPAQUE (RFC 9807) PakeClient implementation (src/opaque_pake.rs).
+# opaque-ke/voprf 0.5 are built against elliptic-curve 0.13, which is
+# semver-incompatible with the elliptic-curve 0.14 our own p256 = "0.14"
+# (used for JWS/ECDSA elsewhere in this crate) depends on - p256::NistP256
+# from two different elliptic-curve major versions are distinct,
+# non-interchangeable types. These renamed deps pin the exact versions
+# opaque-ke's own P256 ciphersuite is built and tested against, kept
+# entirely internal to opaque_pake.rs - PakeClient's public boundary is
+# raw bytes only, so this never leaks into the rest of the crate.
+opaque-ke = { version = "4.0.1", features = ["serde"] }
+p256-opaque = { package = "p256", version = "0.13", default-features = false, features = ["ecdsa", "hash2curve", "pkcs8", "voprf"] }
+sha2-opaque = { package = "sha2", version = "0.10", default-features = false }
+rand-opaque = { package = "rand", version = "0.8" }
+
 [dev-dependencies]
 hex = "0.4"
