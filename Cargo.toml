@@ -1,6 +1,6 @@
 [package]
 name = "r2ps-client"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "R2PS protocol client library — remote PAKE-protected signing for mobile deployments"
 license = "BSD-2-Clause"
