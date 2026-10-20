@@ -32,7 +32,7 @@ sha2 = "0.11"
 
 # CLI-only dependencies
 clap = { version = "4", features = ["derive", "env"], optional = true }
-ureq = { version = "2", optional = true }
+ureq = { version = "3", optional = true }
 rpassword = { version = "7", optional = true }
 hex = { version = "0.4", optional = true }
 
